@@ -229,7 +229,7 @@ export const PositionOverview: React.FC<PoolComponentProps> = ({ poolId }) => {
                 sx={{ marginLeft: '18px' }}
               />
             </Box>
-            <Box
+            {/* <Box
               sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -244,7 +244,7 @@ export const PositionOverview: React.FC<PoolComponentProps> = ({ poolId }) => {
                 type="large"
               />
               <BorrowCapRing poolId={poolId} />
-            </Box>
+            </Box> */}
           </Box>
           <Box sx={{ width: '100%' }}>{renderClaimButton()}</Box>
         </Row>

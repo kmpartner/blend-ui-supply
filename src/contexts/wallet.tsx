@@ -11,6 +11,7 @@ import {
   SubmitArgs,
 } from '@blend-capital/blend-sdk';
 import {
+  AlbedoModule,
   FreighterModule,
   ISupportedWallet,
   LobstrModule,
@@ -136,7 +137,12 @@ export const WalletProvider = ({ children = null as any }) => {
   const walletKit: StellarWalletsKit = new StellarWalletsKit({
     network: network.passphrase as WalletNetwork,
     selectedWalletId: autoConnect !== undefined && autoConnect !== 'false' ? autoConnect : XBULL_ID,
-    modules: [new xBullModule(), new FreighterModule(), new LobstrModule()],
+    modules: [
+      new AlbedoModule(), 
+      new xBullModule(), 
+      new FreighterModule(), 
+      // new LobstrModule()
+    ],
   });
 
   useEffect(() => {

@@ -7,19 +7,20 @@ export const TOS = () => {
         Last Updated: April 15, 2024
       </Typography>
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
-        Please review these Terms of Use (“Terms”) carefully, as they set forth the legally binding
+        {/* Please review these Terms of Use (“Terms”) carefully, as they set forth the legally binding
         terms and conditions that govern your use and access to our web-hosted user interface
         located at https://mainnet.blend.capital (the “App” or “Blend”), including related
-        trademarks, software code, and other intellectual property. The App provides access to a
+        trademarks, software code, and other intellectual property.  */}
+        The App provides access to a
         decentralized protocol on the Stellar blockchain that allows suppliers and borrowers of
         certain cryptoassets to participate in decentralized money markets. These Terms expressly
         cover your rights and obligations, and our disclaimers and limitations of legal liability,
         relating to your use of, and access to, the App.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         The App is a copyrighted work belonging to Script3 Ltd. (“Script3,” “Company,” “us,” “our,”
         and “we”), a Delaware corporation.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         * * *
       </Typography>
@@ -33,16 +34,16 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         * * *
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '36px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '36px' }}>
         Please carefully review the disclosures and disclaimers set forth in Section 12 in their
         entirety before using any software initially developed by Script3. The information in
         Section 12 provides important details about the legal obligations associated with your use
         of the App.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         1. Description of the App
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         1.1. Blend is a non-custodial, peer-to-peer platform that allows users to access
         decentralized money markets and conduct decentralized finance (“Defi”) transactions by
         utilizing the Blend protocol (the “Protocol”). Defi transactions include borrowing and
@@ -50,7 +51,7 @@ export const TOS = () => {
         developed the App and contributed to the Protocol, Script3 cannot take custody or control of
         any cryptoassets deposited on the Protocol, nor can Script3 upgrade or freeze smart
         contracts on the Protocol.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         1.2. In order to use certain features of the App, you must connect a Stellar wallet to the
         App (“Wallet”). You represent and warrant that you are the exclusive owner and controller of
@@ -65,10 +66,10 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         2. Use of the App
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         2.1. As a condition to accessing or using the App, you represent and warrant to Script3 the
         following:
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         a) if you are entering into these Terms as an individual, then you are at least 18 years old
         or of legal age in the jurisdiction in which you reside and you have the legal capacity to
@@ -106,7 +107,7 @@ export const TOS = () => {
         techniques to circumvent, or attempt to circumvent, any restrictions that apply to the App;
         and
       </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '12px' }}>
         h) your access to the App is not (a) prohibited by and does not otherwise violate or assist
         you to violate any domestic or foreign law, rule, statute, regulation, by-law, order,
         protocol, code, decree, or another directive, requirement, or guideline, published or in
@@ -117,12 +118,12 @@ export const TOS = () => {
         authority having jurisdiction over Script3, you, the App, or as otherwise duly enacted,
         enforceable by law, the common law or equity (collectively, “Applicable Laws”); or (b)
         contribute to or facilitate any illegal activity.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         2.2. As a condition to accessing or using the App, you acknowledge, understand, and agree to
         the following:
       </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         a) from time to time, any part of the App may be inaccessible or inoperable for any reason,
         including, without limitation: (a) equipment malfunctions; (b) periodic maintenance
         procedures or repairs that Script3 or any of its suppliers or contractors may undertake from
@@ -163,10 +164,10 @@ export const TOS = () => {
         are not responsible for ensuring that an entity with whom you transact completes the
         transaction or is authorized to do so, and if you experience a problem with any transactions
         in cryptoassets using the App, then you bear the entire risk.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         2.3. As a condition to accessing or using the App, you covenant to Script3 the following:
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         a) in connection with using the App, you only will transfer legally-obtained cryptoassets
         that belong to you;
@@ -191,12 +192,12 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         3.1. There is no fee for using the App.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         3.2. There may be separate fees for interacting with the Protocol (“Protocol Fees”). While
         the App may display the Protocol Fees, Script3 never receives or takes custody of Protocol
         Fees.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '36px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '36px' }}>
         3.3. In connection with your use of the App, you are required to pay all Stellar transaction
         fees necessary for interacting with the Stellar blockchain, as well as all other fees
         reflected on the App, if any. The value of the Stellar transaction fee changes, often
@@ -208,7 +209,7 @@ export const TOS = () => {
         the given transaction was unknown, too high, or otherwise unacceptable to a user. You also
         acknowledge and agree that the Stellar transaction fee is non-refundable under all
         circumstances.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         4. No Professional Advice or Fiduciary Duties
       </Typography>
@@ -231,15 +232,15 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         5. Prohibited Activity
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         5.1. You may not use the App to engage in the categories of activity set forth below
         (“Prohibited Uses”). The specific activities set forth below are representative, but not
         exhaustive, of Prohibited Uses. If you are uncertain as to whether or not your use of the
         App involves a Prohibited Use or have other questions about how these requirements apply to
         you, then please contact us at support@script3.io. By using the App, you confirm that you
         will not use the App to do any of the following:
-      </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         a) violate any Applicable Laws including, without limitation, any relevant and applicable
         anti-money laundering and anti-terrorist financing laws and sanctions programs, such as,
         without limitation, the Bank Secrecy Act and the U.S. Department of Treasury’s Office of
@@ -252,26 +253,26 @@ export const TOS = () => {
         Script3’s trade or service marks, without express consent from Script3 or in a manner that
         otherwise harms Script3, or any action that implies an untrue endorsement by or affiliation
         with Script3;
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         c) use the App in any manner that could interfere with, disrupt, negatively affect, or
         inhibit other users from fully enjoying the App, or that could damage, disable, overburden,
         or impair the functioning of the App in any manner;
       </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         d) circumvent any content-filtering techniques, security measures or access controls that
         Script3 employs on the App, including, without limitation, through the use of a VPN;
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         e) use any robot, spider, crawler, scraper, or other automated means or interface not
         provided by us, to access the App or to extract data, or introduce any malware, virus,
         Trojan horse, worm, logic bomb, drop-dead device, backdoor, shutdown mechanism or other
         harmful material into the App;
       </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         f) provide false, inaccurate, or misleading information while using the App or engage in
         activity that operates to defraud Script3, other users of the App, or any other person;
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         g) use or access the App to transmit or exchange cryptoassets that are the direct or
         indirect proceeds of any criminal or fraudulent activity, including, without limitation,
@@ -288,10 +289,10 @@ export const TOS = () => {
         i) use the App from a jurisdiction that we have, in our sole discretion, determined is a
         jurisdiction where the use of the App is prohibited;
       </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         j) harass, abuse, or harm of another person or entity, including Script3’s employees and
         service providers;
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         k) impersonate another user of the App or otherwise misrepresent yourself; or
       </Typography>
@@ -302,12 +303,12 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         6. Proprietary Rights
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         6.1. Subject to these Terms, Script3 grants you a non-transferable, non-exclusive,
         revocable, limited license to use and access the App for your own personal and noncommercial
         use.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         6.2. The rights granted to you in these Terms are subject to the following restrictions: (a)
         you shall not license, sell, rent, lease, transfer, assign, distribute, host, or otherwise
         commercially exploit the App, whether in whole or in part, or any content displayed on the
@@ -326,8 +327,8 @@ export const TOS = () => {
         displayed, posted or transmitted in any form or by any means. Unless otherwise indicated,
         any future release, update, or other addition to functionality of the App shall be subject
         to these Terms.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         6.3. Script3 reserves the right, at any time, to modify, suspend, or discontinue the App (in
         whole or in part) with or without notice to you. You agree that Script3 will not be liable
         to you or to any third party for any modification, suspension, or discontinuation of the
@@ -344,8 +345,8 @@ export const TOS = () => {
         rights, title or interest in or to such intellectual property rights, except for the limited
         access rights expressly set forth in these Terms. Script3 and its suppliers reserve all
         rights not granted in these Terms. There are no implied licenses granted under these Terms.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         7. Third-Party Links
       </Typography>
       <Typography variant="body2" sx={{ marginBottom: '36px' }}>
@@ -357,7 +358,7 @@ export const TOS = () => {
         responsible or liable, directly or indirectly, for any damage or loss caused or alleged to
         be caused by or in connection with use of or reliance on any such content, goods, or
         services available on or through any such App or resource.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         8. Modification, Suspension, and Termination
       </Typography>
@@ -366,10 +367,10 @@ export const TOS = () => {
         you, modify, suspend or disable (temporarily or permanently) the App, in whole or in part,
         for any reason whatsoever.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         8.2. You acknowledge and agree that Script3 will have no obligation to provide you with any
         support or maintenance in connection with the App.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         8.3. Upon termination of your access, your right to use the App will immediately cease. We
         will not be liable for any losses suffered by you resulting from any modification to the App
@@ -398,7 +399,7 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10. Risks
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.1. Blockchain networks use public/private key cryptography. You alone are responsible for
         securing your private key(s). We do not have access to your private key(s). Losing control
         of your private key(s) will permanently and irreversibly deny you access to cryptoassets on
@@ -407,7 +408,7 @@ export const TOS = () => {
         key(s) are lost, then you will not be able to transfer your cryptoassets to any other
         blockchain address or wallet. If this occurs, then you will not be able to realize any value
         or utility from the cryptoassets that you may hold.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.2. Cryptography is a progressing field with advances in code cracking or other technical
         advancements, such as the development of quantum computers, which may present risks to
@@ -423,7 +424,7 @@ export const TOS = () => {
         the Stellar blockchain, which may result in price fluctuations or increased costs when using
         the App.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.4. The App remains under development, which creates technological, trading, and other
         risks when using or accessing the App. You acknowledge and understand that the App is
         subject to flaws and that you are solely responsible for evaluating any code provided by the
@@ -433,7 +434,7 @@ export const TOS = () => {
         transactions at your desired price or at all. This warning and others Script3 provides in
         these Terms in no way evidence or represent an on-going duty to alert you to all of the
         potential risks of using or accessing the App.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.5. Although we intend to provide accurate and timely information on the App, the App and
         other information available when using the App may not always be entirely accurate,
@@ -473,14 +474,14 @@ export const TOS = () => {
         circumstances be liable to you in connection with, your use of the App for performing
         digital asset transactions.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.8. We must comply with Applicable Law, which may require us to, upon request by
         government agencies, take certain actions or provide information, which may not be in your
         best interests. The App and your cryptoassets could be impacted by one or more regulatory
         inquiries or regulatory actions, which could impede or limit the ability of Script3 to
         continue to make available any portion(s) of the App which rely on any Script3 proprietary
         software and, thus, could impede or limit your ability to access or use the App.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.9. Cryptoassets currently face an uncertain regulatory landscape in the United States and
         many foreign jurisdictions. In the United States, cryptoassets are not subject to federal
@@ -494,12 +495,12 @@ export const TOS = () => {
         directives may impact the price of cryptoassets and their acceptance by users, merchants and
         service providers.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.10. You understand that the Protocol is not controlled by Script3 and that any changes to
         the Protocol will result from the actions of persons or entities other than Script3
         including the Yieldblox DAO.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         10.11. All cryptoassets that have been deposited into a smart contract on the Protocol may
         be subject to liquidation (“Liquidation Event”). It is your responsibility to monitor and
         top up the balance at all times. Script3 will not be liable for any Liquidation Event.
@@ -511,11 +512,11 @@ export const TOS = () => {
         and their respective shareholders, members, directors, officers, employees, agents, and
         representatives, suppliers, and contractors related to any of the risks set forth in this
         Section 10.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         11. Indemnification
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '36px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '36px' }}>
         11.1. You will defend, indemnify, and hold harmless Script3, its affiliates, and its and its
         affiliates’ respective stockholders, members, directors, officers, managers, employees,
         attorneys, agents, representatives, suppliers, and contractors (collectively, “Indemnified
@@ -529,11 +530,11 @@ export const TOS = () => {
         applicable Indemnified Party) will have the right, in its sole discretion, to control any
         action or proceeding and to determine whether Script3 wishes to settle, and if so, on what
         terms, and you agree to corporate with Script3 in the defense.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         12. Disclosures; Disclaimers
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         12.1. Script3 does not operate a digital asset or derivatives exchange platform or offer
         trade execution or clearing services and, therefore, has no oversight, involvement, or
         control concerning your transactions using the App. All transactions between users of
@@ -565,7 +566,7 @@ export const TOS = () => {
         12.4. Script3 shall not be responsible in any way for any transactions you enter into with
         other users. You agree that Script3 will not be liable for any loss or damages of any sort
         incurred as the result of any interactions between you and other users.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         12.5. You acknowledge that your data on the App may become irretrievably lost or corrupted
         or temporarily unavailable due to a variety of causes, and agree that, to the maximum extent
@@ -580,7 +581,7 @@ export const TOS = () => {
         extent such warranties cannot be excluded or limited under the Applicable Law of the
         jurisdiction in which you reside.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         12.7. THE APP IS PROVIDED ON AN “AS-IS” AND “AS AVAILABLE” BASIS, AND SCRIPT3 (AND OUR
         SUPPLIERS) EXPRESSLY DISCLAIM ANY AND ALL WARRANTIES AND CONDITIONS OF ANY KIND, WHETHER
         EXPRESS, IMPLIED, OR STATUTORY, INCLUDING ALL WARRANTIES OR CONDITIONS OF MERCHANTABILITY,
@@ -590,13 +591,13 @@ export const TOS = () => {
         RELIABLE, FREE OF VIRUSES OR OTHER HARMFUL CODE, COMPLETE, LEGAL, OR SAFE. IF APPLICABLE LAW
         REQUIRES ANY WARRANTIES WITH RESPECT TO THE APP, ALL SUCH WARRANTIES ARE LIMITED IN DURATION
         TO NINETY (90) DAYS FROM THE DATE OF FIRST USE.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         SCRIPT3 DOES NOT ENDORSE ANY OTHER THIRD PARTY AND SHALL NOT BE RESPONSIBLE IN ANY WAY FOR
         ANY TRANSACTIONS YOU ENTER INTO WITH OTHER USERS. YOU AGREE THAT SCRIPT3 WILL NOT BE LIABLE
         FOR ANY LOSS OR DAMAGES OF ANY SORT INCURRED AS THE RESULT OF ANY INTERACTIONS BETWEEN YOU
         AND OTHER USERS.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '36px' }}>
         SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OF IMPLIED WARRANTIES, SO THE ABOVE EXCLUSION
         MAY NOT APPLY TO YOU. SOME JURISDICTIONS DO NOT ALLOW LIMITATIONS ON HOW LONG AN IMPLIED
@@ -605,7 +606,7 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         13. Limitation of Liability
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         13.1. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL SCRIPT3 BE LIABLE TO YOU OR
         ANY THIRD PARTY FOR ANY LOST PROFITS, LOST DATA, OR ANY INDIRECT, CONSEQUENTIAL, EXEMPLARY,
         INCIDENTAL, SPECIAL OR PUNITIVE DAMAGES ARISING FROM OR RELATING TO THESE TERMS OR YOUR USE
@@ -613,7 +614,7 @@ export const TOS = () => {
         SUCH DAMAGES. ACCESS TO, AND USE OF, THE APP IS AT YOUR OWN DISCRETION AND RISK, AND YOU
         WILL BE SOLELY RESPONSIBLE FOR ANY DAMAGE TO YOUR DEVICE OR COMPUTER SYSTEM, OR LOSS OF DATA
         RESULTING THEREFROM.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         13.2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, NOTWITHSTANDING ANYTHING TO THE CONTRARY
         CONTAINED HEREIN, OUR LIABILITY TO YOU FOR ANY DAMAGES ARISING FROM OR RELATED TO THIS
@@ -629,12 +630,12 @@ export const TOS = () => {
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         14. Dispute Resolution & Arbitration
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         14.1. Please read this Arbitration Agreement carefully. It is part of your contract with
         Script3 and affects your rights. It contains procedures for mandatory binding arbitration
         and a class action waiver.
-      </Typography>
-      <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginLeft: '24px', marginBottom: '6px' }}>
         (a) Applicability of Arbitration Agreement. All claims and disputes (excluding claims for
         injunctive or other equitable relief as set forth below) between Script3 and any user that
         cannot be resolved informally or in small claims court shall be resolved by binding
@@ -767,7 +768,7 @@ export const TOS = () => {
         (p) Courts. In any circumstances where the foregoing Arbitration Agreement permits the
         parties to litigate in court, the parties hereby agree to submit to the personal
         jurisdiction of the courts located within London, England (U.K.), for such purpose.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         15. Governing Law
       </Typography>
@@ -794,18 +795,18 @@ export const TOS = () => {
         acknowledgement of such changes and agreement to be bound by the terms and conditions of
         such changes.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.2. You agree that we may provide our communications to you by posting them on the App.
         You should maintain copies of our communications by printing a paper copy or saving an
         electronic copy. You may also contact us with questions, complaints, or claims concerning
         the App at support@script3.io.
-      </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      </Typography> */}
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.3. Any right or remedy of Script3 set forth in these Terms is in addition to, and not in
         lieu of, any other right or remedy whether described in these Terms, under Applicable Law,
         at law, or in equity. The failure or delay of Script3 in exercising any right, power, or
         privilege under these Terms shall not operate as a waiver thereof.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.4. The invalidity or unenforceability of any of these Terms shall not affect the validity
         or enforceability of any other of these Terms, all of which shall remain in full force and
@@ -829,10 +830,10 @@ export const TOS = () => {
         16.7. Headings of sections are for convenience only and shall not be used to limit or
         construe such sections.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.8. These Terms contain the entire agreement between you and Script3, and supersede all
         prior and contemporaneous understandings between the parties regarding the App.
-      </Typography>
+      </Typography> */}
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.9. In the event of any conflict between these Terms and any other agreement you may have
         with us, these Terms will control unless the other agreement specifically identifies these
@@ -842,7 +843,7 @@ export const TOS = () => {
         16.10. You agree that, except as otherwise expressly provided in this Agreement, there shall
         be no third-party beneficiaries to the Agreement other than the Indemnified Parties.
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: '12px' }}>
+      {/* <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         16.11. A waiver by Script3 of any right or remedy under these Terms shall only be effective
         if it is in writing, executed by a duly authorized representative of Script3 and shall apply
         only to the circumstances for which it is given. Our failure to exercise or enforce any
@@ -856,7 +857,7 @@ export const TOS = () => {
         marks (“Marks”) displayed on the App are our property or the property of other third
         parties. You are not permitted to use these Marks without our prior written consent or the
         consent of such third party which may own the Marks.
-      </Typography>
+      </Typography> */}
     </Box>
   );
 };

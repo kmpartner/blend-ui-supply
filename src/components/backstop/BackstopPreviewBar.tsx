@@ -135,7 +135,7 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
             gap: '12px',
           }}
         >
-          <Box
+          {/* <Box
             sx={{
               display: 'flex',
               flexDirection: 'row',
@@ -192,8 +192,8 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
                 />
               </Box>
             </Tooltip>
-          </Box>
-          <LinkBox
+          </Box> */}
+          {/* <LinkBox
             sx={{ width: '100%' }}
             to={{ pathname: '/backstop-q4w', query: { poolId: 'poolId' } }}
           >
@@ -224,7 +224,7 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
               </Box>
               <ArrowForwardIcon fontSize="inherit" />
             </CustomButton>
-          </LinkBox>
+          </LinkBox> */}
         </Row>
       )}
     </>

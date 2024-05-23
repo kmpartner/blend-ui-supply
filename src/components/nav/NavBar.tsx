@@ -1,5 +1,4 @@
-import { Box, IconButton } from '@mui/material';
-import Image from 'next/image';
+import { Box } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { ViewType, useSettings } from '../../contexts';
 import { useStore } from '../../store/store';
@@ -7,7 +6,6 @@ import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
 import { SectionBase } from '../common/SectionBase';
 import { NavItem } from './NavItem';
-import { NavMenu } from './NavMenu';
 import { WalletMenu } from './WalletMenu';
 
 export const NavBar = () => {
@@ -32,11 +30,12 @@ export const NavBar = () => {
   return (
     <Row sx={{ height: '62px' }}>
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
-        <a href="https://blend.capital" target="_blank" rel="noreferrer">
+        {/* <a href="https://blend.capital" target="_blank" rel="noreferrer">
           <IconButton sx={{ width: '79%', height: '79%', margin: '6px' }}>
             <Image src="/icons/blend_logo.svg" layout="fill" alt="Blend Logo" />
           </IconButton>
-        </a>
+        </a> */}
+        <span>logo-link</span>
       </SectionBase>
       {viewType === ViewType.REGULAR && (
         <Box
@@ -73,7 +72,8 @@ export const NavBar = () => {
       )}
 
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
-        <NavMenu />
+        {/* <NavMenu /> */}
+        <div>nav-menu</div>
       </SectionBase>
     </Row>
   );
