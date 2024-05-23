@@ -57,7 +57,7 @@ const Dashboard: NextPage = () => {
       <Divider />
       <Row>
         <Section width={SectionSize.FULL} sx={{ padding: '0px' }}>
-          <ToggleButton
+          {/* <ToggleButton
             active={showLend}
             palette={theme.palette.lend}
             // sx={{ width: '50%', padding: '12px' }}
@@ -66,7 +66,7 @@ const Dashboard: NextPage = () => {
           >
             Supply
           </ToggleButton>
-          {/* <ToggleButton
+          <ToggleButton
             active={!showLend}
             palette={theme.palette.borrow}
             sx={{ width: '50%', padding: '12px' }}

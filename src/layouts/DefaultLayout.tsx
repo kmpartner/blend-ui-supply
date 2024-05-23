@@ -63,7 +63,7 @@ export default function DefaultLayout({ children }: { children: ReactNode }) {
             )}
             {children}
             <OverlayModal />
-            <OverlayModalTOS />
+            {/* <OverlayModalTOS /> */}
           </Box>
         </Box>
         <Box />

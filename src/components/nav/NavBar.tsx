@@ -7,6 +7,7 @@ import { Section, SectionSize } from '../common/Section';
 import { SectionBase } from '../common/SectionBase';
 import { NavItem } from './NavItem';
 import { WalletMenu } from './WalletMenu';
+import { NavMenu2 } from './NavMenu2';
 
 export const NavBar = () => {
   const { viewType, lastPool } = useSettings();
@@ -72,8 +73,8 @@ export const NavBar = () => {
       )}
 
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
-        {/* <NavMenu /> */}
-        <div>nav-menu</div>
+        <NavMenu2 />
+        {/* <div>nav-menu</div> */}
       </SectionBase>
     </Row>
   );

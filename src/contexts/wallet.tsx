@@ -139,8 +139,8 @@ export const WalletProvider = ({ children = null as any }) => {
     selectedWalletId: autoConnect !== undefined && autoConnect !== 'false' ? autoConnect : XBULL_ID,
     modules: [
       new AlbedoModule(), 
-      new xBullModule(), 
       new FreighterModule(), 
+      new xBullModule(), 
       // new LobstrModule()
     ],
   });
