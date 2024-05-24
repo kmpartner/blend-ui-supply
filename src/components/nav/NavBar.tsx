@@ -36,7 +36,7 @@ export const NavBar = () => {
             <Image src="/icons/blend_logo.svg" layout="fill" alt="Blend Logo" />
           </IconButton>
         </a> */}
-        <span>logo-link</span>
+        {/* <span>logo-link</span> */}
       </SectionBase>
       {viewType === ViewType.REGULAR && (
         <Box

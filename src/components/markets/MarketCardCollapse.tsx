@@ -108,7 +108,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
           </Box>
         </OpaqueButton>
       </Row>
-      <Row>
+      {/* <Row>
         <LinkBox
           sx={{ width: '100%', marginRight: '12px' }}
           to={{ pathname: '/backstop', query: { poolId: poolData.id } }}
@@ -174,7 +174,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
             </Box>
           </OpaqueButton>
         </LinkBox>
-      </Row>
+      </Row> */}
       <MarketsList poolData={poolData} />
     </Box>
   );

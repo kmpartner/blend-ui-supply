@@ -51,6 +51,7 @@ export const NavMenu2 = () => {
         id="nav-dropdown-button"
         onClick={handleClick}
         sx={{ width: '100%', height: '100%', color: theme.palette.text.secondary }}
+        title="Menu"
       >
         <MoreHorizRoundedIcon />
       </IconButton>
