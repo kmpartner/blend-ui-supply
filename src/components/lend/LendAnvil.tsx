@@ -199,7 +199,7 @@ export const LendAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }) 
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM`}
+                )} XLM (please make sure you have enoguh available XLM in wallet)`}
               />
               <ValueChange
                 title="Your total supplied"

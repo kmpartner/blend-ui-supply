@@ -164,7 +164,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM`}
+                )} XLM (please make sure you have enoguh available XLM in wallet)`}
               />
               <ValueChange
                 title="Your total deposit"

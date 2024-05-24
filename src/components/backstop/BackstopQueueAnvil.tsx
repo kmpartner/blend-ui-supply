@@ -168,7 +168,7 @@ export const BackstopQueueAnvil: React.FC<PoolComponentProps> = ({ poolId }) => 
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM`}
+                )} XLM (please make sure you have enoguh available XLM in wallet)`}
               />
               <Value
                 title="New queue expiration"

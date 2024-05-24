@@ -382,7 +382,7 @@ export const BackstopMintAnvil: React.FC<{
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM`}
+                )} XLM (please make sure you have enoguh available XLM in wallet)`}
               />
               <ValueChange
                 title="Your total mint"

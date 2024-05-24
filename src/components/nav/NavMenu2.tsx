@@ -54,7 +54,6 @@ export const NavMenu2 = () => {
       >
         <MoreHorizRoundedIcon />
       </IconButton>
-      {viewType === ViewType.REGULAR && (
         <Menu
           id="nav-menu"
           anchorEl={anchorEl}
@@ -95,14 +94,30 @@ export const NavMenu2 = () => {
             title="Dashboard"
             sx={{ width: '90%', justifyContent: 'left', marginBottom: '6px' }}
           />
+          <a href="https://www.spaceeight.work" target="_blank" rel="noreferrer">
+            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
+              StellarSpace (DEX & Liquidity Pool)
+            </MenuItem>
+          </a>
+          <a href="https://news.spaceeight.work" target="_blank" rel="noreferrer">
+            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
+              StellarSpace News (News)
+            </MenuItem>
+          </a>
+          <a href="https://stellar-nftplace.spaceeight.work" target="_blank" rel="noreferrer">
+            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
+              Stellar NFT Place (NFT)
+            </MenuItem>
+          </a>
+
           <Link href="/termsofservice">
             <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
               Terms of Service
             </MenuItem>
           </Link>
         </Menu>
-      )}
-      {viewType !== ViewType.REGULAR && (
+
+      {/* {viewType !== ViewType.REGULAR && (
         <Menu
           id="nav-menu"
           anchorEl={anchorEl}
@@ -128,34 +143,18 @@ export const NavMenu2 = () => {
             title="Dashboard"
             sx={{ width: '90%', justifyContent: 'left', marginBottom: '6px' }}
           />
-          {/* <NavItem
-            onClick={handleClose}
-            to={{ pathname: '/backstop', query: { poolId: poolId } }}
-            title="Backstop"
-            sx={{ width: '90%', justifyContent: 'left', marginBottom: '6px' }}
-          />
-          <Link href="/network">
+          <a href="https://www.spaceeight.work" target="_blank" rel="noreferrer">
             <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
-              Network Config
-            </MenuItem>
-          </Link>
-          <a href="https://docs.blend.capital/" target="_blank" rel="noreferrer">
-            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
-              Docs
+              Stellar Space (Decentralized Exchange)
             </MenuItem>
           </a>
-          <a href="https://github.com/blend-capital" target="_blank" rel="noreferrer">
-            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
-              GitHub
-            </MenuItem>
-          </a> */}
           <Link href="/termsofservice">
             <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
               Terms of Service
             </MenuItem>
           </Link>
         </Menu>
-      )}
+      )} */}
 
       <Snackbar
         open={openCon}
