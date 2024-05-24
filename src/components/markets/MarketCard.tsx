@@ -39,21 +39,21 @@ export const MarketCard: React.FC<PoolComponentProps> = ({ poolId, sx }) => {
   return (
     <Section width={SectionSize.FULL} sx={{ flexDirection: 'column', marginBottom: '12px', ...sx }}>
       <Box
-        onClick={() => {
-          setExpand(!expand);
-          setRotateArrow(!rotateArrow);
-        }}
+        // onClick={() => {
+        //   setExpand(!expand);
+        //   setRotateArrow(!rotateArrow);
+        // }}
         sx={{
           width: '100%',
           '&:hover': {
-            cursor: 'pointer',
+            // cursor: 'pointer',
             filter: 'brightness(110%)',
           },
         }}
       >
         <Row>
           <PoolHeader name={poolData.config.name} sx={{ margin: '6px', padding: '6px' }} />
-          <Box
+          {/* <Box
             sx={{
               margin: '6px',
               padding: '6px',
@@ -74,7 +74,7 @@ export const MarketCard: React.FC<PoolComponentProps> = ({ poolId, sx }) => {
                 transition: 'all 0.2s linear',
               }}
             />
-          </Box>
+          </Box> */}
         </Row>
         <Row>
           <StackedTextHLBox
