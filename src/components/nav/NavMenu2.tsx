@@ -111,6 +111,12 @@ export const NavMenu2 = () => {
             </MenuItem>
           </a>
 
+          <Link href="/about-page">
+            <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
+              About Page
+            </MenuItem>
+          </Link>
+
           <Link href="/termsofservice">
             <MenuItem onClick={handleClose} sx={{ color: '#FFFFFF' }}>
               Terms of Service
