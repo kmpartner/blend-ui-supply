@@ -59,7 +59,8 @@ export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
 
         {viewType !== ViewType.MOBILE && (
           <Tooltip
-            title="The percent of this asset's value added to your borrow capacity."
+            // title="The percent of this asset's value added to your borrow capacity."
+            title=""
             placement="top"
             enterTouchDelay={0}
             enterDelay={500}
@@ -69,14 +70,14 @@ export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
               <Typography variant="body2" color="text.secondary" align="center">
                 Collateral Factor
               </Typography>
-              <HelpOutline
+              {/* <HelpOutline
                 sx={{
                   color: 'text.secondary',
                   width: '15px',
                   marginTop: '-4px',
                   marginLeft: '4px',
                 }}
-              />
+              /> */}
             </Box>
           </Tooltip>
         )}

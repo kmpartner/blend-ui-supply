@@ -376,13 +376,13 @@ export const BackstopMintAnvil: React.FC<{
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas
+                    Gas (Fee)
                   </>
                 }
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM (please make sure you have enoguh available XLM in wallet)`}
+                )} XLM (please make sure you have enough available XLM in wallet)`}
               />
               <ValueChange
                 title="Your total mint"
