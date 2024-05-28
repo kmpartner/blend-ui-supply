@@ -12,7 +12,7 @@ export const AboutContent = () => {
 
       <Typography variant="body2" sx={{ marginBottom: '12px', fontSize: "1rem" }}>
         By supplying liquidity to the lending pools based on Stellar Blockchain, user will receive interest
-        (if lended asset is in the reward zone, user can receive BLND token as well). 
+        (if lent asset is in the reward zone, user can receive BLND token as well). 
       </Typography>
 
       <Typography variant="body2" sx={{ marginBottom: '12px', fontSize: "1rem" }}>
