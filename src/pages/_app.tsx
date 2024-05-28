@@ -16,6 +16,14 @@ export default function MyApp(props: AppProps) {
     <>
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
+
+        <link rel="shortcut icon" href="/favicon.ico" />
+
+        <title>Interest Earn Lending Pools</title>
+        <meta
+          name="description"
+          content="user can provide assets to lending pools and receive interest in return" 
+        />
       </Head>
       <ThemeProvider theme={theme}>
         <SettingsProvider>
