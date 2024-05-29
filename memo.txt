@@ -1,0 +1,3 @@
+for deploy
+
+git push to blend-ui-supply (github, vercel detection)

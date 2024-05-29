@@ -25,6 +25,11 @@ export const AboutContent = () => {
         BLND is token for lending pools. It is issued to users of lending pools, and can be used for insuring lending pools.
       </Typography>
 
+      <Typography variant="body2" sx={{ marginBottom: '12px', fontSize: "1rem" }}>
+        Interest rate is dynamic and changed by the conditions of the lending pool. 
+        The conditions are depend on the liquidity of the lending pool and other factors.
+      </Typography>
+
       <Typography variant="body2" sx={{ marginBottom: '12px' }}>
         {/* When lenders withdraw their lent assets, they also withdraw any interest they have earned. */}
       </Typography>
