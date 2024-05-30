@@ -76,7 +76,8 @@ export const WalletWarning = () => {
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <InfoOutlinedIcon sx={{ marginRight: '6px' }} />
             <Typography variant="body2">
-              No account connected. Please connect your wallet to use Blend.
+              {/* No account connected. Please connect your wallet to use Blend. */}
+              No account connected. Please connect your wallet to use.
             </Typography>
           </Box>
           <ArrowForwardIcon fontSize="inherit" />
