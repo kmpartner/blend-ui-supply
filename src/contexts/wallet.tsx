@@ -138,7 +138,12 @@ export const WalletProvider = ({ children = null as any }) => {
   const walletKit: StellarWalletsKit = new StellarWalletsKit({
     network: network.passphrase as WalletNetwork,
     selectedWalletId: autoConnect !== undefined && autoConnect !== 'false' ? autoConnect : XBULL_ID,
-    modules: [new xBullModule(), new FreighterModule(), new LobstrModule(), new AlbedoModule()],
+    modules: [
+      new AlbedoModule(),
+      new FreighterModule(), 
+      new xBullModule(), 
+      // new LobstrModule(), 
+    ],
   });
 
   useEffect(() => {
