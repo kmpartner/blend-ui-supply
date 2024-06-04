@@ -218,7 +218,7 @@ export const LendAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }) 
                   decimals
                 )} ${symbol}`}
               />
-              <ValueChange
+              {/* <ValueChange
                 title="Borrow capacity"
                 curValue={`$${toBalance(curBorrowCap)}`}
                 newValue={`$${toBalance(nextBorrowCap)}`}
@@ -227,7 +227,7 @@ export const LendAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }) 
                 title="Borrow limit"
                 curValue={toPercentage(curBorrowLimit)}
                 newValue={toPercentage(nextBorrowLimit)}
-              />
+              /> */}
             </>
           </TxOverview>
         )}

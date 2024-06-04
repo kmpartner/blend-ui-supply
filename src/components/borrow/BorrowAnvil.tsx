@@ -260,7 +260,7 @@ export const BorrowAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }
                     decimals
                   )} ${symbol}`}
                 />
-                <ValueChange
+                {/* <ValueChange
                   title="Borrow capacity"
                   curValue={`${toBalance(curBorrowCap)} ${symbol}`}
                   newValue={`${toBalance(nextBorrowCap)} ${symbol}`}
@@ -269,7 +269,7 @@ export const BorrowAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }
                   title="Borrow limit"
                   curValue={toPercentage(curBorrowLimit)}
                   newValue={toPercentage(nextBorrowLimit)}
-                />
+                /> */}
               </>
             )}
             {isLoading && (
