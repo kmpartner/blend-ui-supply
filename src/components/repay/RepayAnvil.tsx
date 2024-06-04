@@ -20,6 +20,7 @@ import { scaleInputToBigInt } from '../../utils/scval';
 import { getErrorFromSim } from '../../utils/txSim';
 import { AnvilAlert } from '../common/AnvilAlert';
 import { InputBar } from '../common/InputBar';
+import { InputButton } from '../common/InputButton';
 import { OpaqueButton } from '../common/OpaqueButton';
 import { ReserveComponentProps } from '../common/ReserveComponentProps';
 import { Row } from '../common/Row';
@@ -160,11 +161,16 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
                 setToRepay(v);
                 setLoadingEstimate(true);
               }}
-              onSetMax={handleRepayMax}
               palette={theme.palette.borrow}
               sx={{ width: '100%' }}
-              isMaxDisabled={isMaxDisabled}
-            />
+            >
+              <InputButton
+                palette={theme.palette.borrow}
+                onClick={handleRepayMax}
+                disabled={isMaxDisabled}
+                text="MAX"
+              />
+            </InputBar>
             {viewType !== ViewType.MOBILE && (
               <OpaqueButton
                 onClick={() => handleSubmitTransaction(false)}
@@ -203,13 +209,13 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas (Fee)
+                    Gas (Fee) Please make sure you have enough XLM in your wallet.
                   </>
                 }
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM (please make sure you have enough available XLM in wallet)`}
+                )} XLM`}
               />
               <ValueChange
                 title="Your total borrowed"
@@ -222,7 +228,7 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
                   decimals
                 )} ${symbol}`}
               />
-              {/* <ValueChange
+              <ValueChange
                 title="Borrow capacity"
                 curValue={`$${toBalance(curBorrowCap)}`}
                 newValue={`$${toBalance(nextBorrowCap)}`}
@@ -231,7 +237,7 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
                 title="Borrow limit"
                 curValue={toPercentage(curBorrowLimit)}
                 newValue={toPercentage(nextBorrowLimit)}
-              /> */}
+              />
             </>
           </TxOverview>
         )}

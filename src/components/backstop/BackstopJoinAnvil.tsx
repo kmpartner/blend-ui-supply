@@ -515,7 +515,7 @@ export const BackstopJoinAnvil = () => {
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas
+                    Gas (Fee) Please make sure you have enough XLM in your wallet.
                   </>
                 }
                 value={`${toBalance(
