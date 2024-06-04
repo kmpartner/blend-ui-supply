@@ -13,8 +13,8 @@ export interface ISettingsContext {
   setLastPool: (lastPool: string) => void;
   showLend: boolean;
   setShowLend: (showLend: boolean) => void;
-  showDeposit: boolean;
-  setShowDeposit: (showDeposit: boolean) => void;
+  showJoinPool: boolean;
+  setShowJoinPool: (showJoinPool: boolean) => void;
 }
 
 const SettingsContext = React.createContext<ISettingsContext | undefined>(undefined);
@@ -26,7 +26,7 @@ export const SettingsProvider = ({ children = null as any }) => {
 
   const [lastPool, setLastPool] = useLocalStorageState('lastPool', undefined);
   const [showLend, setShowLend] = useState<boolean>(true);
-  const [showDeposit, setShowDeposit] = useState<boolean>(true);
+  const [showJoinPool, setShowJoinPool] = useState<boolean>(true);
 
   let viewType: ViewType;
   if (mobile) viewType = ViewType.MOBILE;
@@ -41,8 +41,8 @@ export const SettingsProvider = ({ children = null as any }) => {
         setLastPool,
         showLend,
         setShowLend,
-        showDeposit,
-        setShowDeposit,
+        showJoinPool,
+        setShowJoinPool,
       }}
     >
       {children}

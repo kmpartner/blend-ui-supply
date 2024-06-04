@@ -12,6 +12,7 @@ import { scaleInputToBigInt } from '../../utils/scval';
 import { getErrorFromSim } from '../../utils/txSim';
 import { AnvilAlert } from '../common/AnvilAlert';
 import { InputBar } from '../common/InputBar';
+import { InputButton } from '../common/InputButton';
 import { OpaqueButton } from '../common/OpaqueButton';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Row } from '../common/Row';
@@ -118,11 +119,16 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
                 setToDeposit(v);
                 setLoadingEstimate(true);
               }}
-              onSetMax={handleDepositMax}
               palette={theme.palette.backstop}
               sx={{ width: '100%' }}
-              isMaxDisabled={isMaxDisabled}
-            />
+            >
+              <InputButton
+                palette={theme.palette.backstop}
+                onClick={handleDepositMax}
+                disabled={isMaxDisabled}
+                text="MAX"
+              />
+            </InputBar>
             {viewType !== ViewType.MOBILE && (
               <OpaqueButton
                 onClick={() => handleSubmitTransaction(false)}
@@ -136,7 +142,9 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
           </Box>
           <Box sx={{ marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
-              {`$${toBalance(Number(toDeposit ?? 0) * (backstopData?.lpTokenPrice ?? 1))}`}
+              {`$${toBalance(
+                Number(toDeposit ?? 0) * (backstopData?.backstopToken.lpTokenPrice ?? 1)
+              )}`}
             </Typography>
             {viewType === ViewType.MOBILE && (
               <OpaqueButton
@@ -158,13 +166,13 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas (Fee)
+                    Gas
                   </>
                 }
                 value={`${toBalance(
                   BigInt((simResponse as any)?.minResourceFee ?? 0),
                   decimals
-                )} XLM (please make sure you have enough available XLM in wallet)`}
+                )} XLM`}
               />
               <ValueChange
                 title="Your total deposit"
