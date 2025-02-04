@@ -4,9 +4,10 @@ import { Box, Typography, useTheme } from '@mui/material';
 import { ViewType, useSettings } from '../../contexts';
 import * as formatter from '../../utils/formatter';
 
-import { getEmissionsPerYearPerUnit } from '../../utils/token';
+import { useBackstop, usePool, usePoolOracle } from '../../hooks/api';
+import { estimateEmissionsApr } from '../../utils/math';
+import { AprDisplay } from '../common/AprDisplay';
 import { CustomButton } from '../common/CustomButton';
-import { FlameIcon } from '../common/FlameIcon';
 import { LinkBox } from '../common/LinkBox';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { SectionBase } from '../common/SectionBase';
@@ -25,9 +26,21 @@ export const BorrowMarketCard: React.FC<BorrowMarketCardProps> = ({
   const theme = useTheme();
   const { viewType } = useSettings();
 
+  const available = reserve.totalSupplyFloat() - reserve.totalLiabilitiesFloat();
+
   const tableNum = viewType === ViewType.REGULAR ? 5 : 3;
   const tableWidth = `${(100 / tableNum).toFixed(2)}%`;
   const liabilityFactor = reserve.getLiabilityFactor();
+
+  const emissionsPerAsset = reserve.emissionsPerYearPerBorrowedAsset();
+  const { data: backstop } = useBackstop();
+  const { data: pool } = usePool(poolId);
+  const { data: poolOracle } = usePoolOracle(pool);
+  const oraclePrice = poolOracle?.getPriceFloat(reserve.assetId);
+  const emissionApr =
+    backstop && emissionsPerAsset > 0 && oraclePrice
+      ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
+      : undefined;
 
   return (
     <SectionBase
@@ -53,7 +66,7 @@ export const BorrowMarketCard: React.FC<BorrowMarketCardProps> = ({
             },
           }}
         >
-          <TokenHeader id={reserve.assetId} sx={{ width: tableWidth }} />
+          <TokenHeader reserve={reserve} sx={{ width: tableWidth }} />
           <Box
             sx={{
               width: tableWidth,
@@ -62,9 +75,7 @@ export const BorrowMarketCard: React.FC<BorrowMarketCardProps> = ({
               alignItems: 'center',
             }}
           >
-            <Typography variant="body1">
-              {formatter.toBalance(reserve.poolBalance, reserve.config.decimals)}
-            </Typography>
+            <Typography variant="body1">{formatter.toBalance(available)}</Typography>
           </Box>
 
           <Box
@@ -75,21 +86,14 @@ export const BorrowMarketCard: React.FC<BorrowMarketCardProps> = ({
               alignItems: 'center',
             }}
           >
-            <Typography variant="body1">{formatter.toPercentage(reserve.estimates.apy)}</Typography>
-            {reserve.borrowEmissions && (
-              <FlameIcon
-                width={22}
-                height={22}
-                title={formatter.getEmissionTextFromValue(
-                  getEmissionsPerYearPerUnit(
-                    reserve.borrowEmissions?.config.eps || BigInt(0),
-                    reserve.estimates.borrowed,
-                    reserve.config.decimals
-                  ),
-                  reserve.tokenMetadata?.symbol
-                )}
-              />
-            )}
+            <AprDisplay
+              assetSymbol={reserve.tokenMetadata.symbol}
+              assetApr={reserve.borrowApr}
+              emissionSymbol="BLND"
+              emissionApr={emissionApr}
+              isSupply={false}
+              direction="vertical"
+            />
           </Box>
           {viewType !== ViewType.MOBILE && (
             <Box

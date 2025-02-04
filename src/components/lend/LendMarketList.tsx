@@ -1,17 +1,18 @@
-import HelpOutline from '@mui/icons-material/HelpOutline';
-import { Box, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { ViewType, useSettings } from '../../contexts';
-import { useStore } from '../../store/store';
+import { usePool } from '../../hooks/api';
 import { PoolComponentProps } from '../common/PoolComponentProps';
+import { Skeleton } from '../common/Skeleton';
+import { TooltipText } from '../common/TooltipText';
 import { LendMarketCard } from './LendMarketCard';
 
 export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
   const { viewType } = useSettings();
 
-  const poolData = useStore((state) => state.pools.get(poolId));
+  const { data: pool } = usePool(poolId);
 
-  if (!poolData) {
-    return <Skeleton variant="rectangular" />;
+  if (pool === undefined) {
+    return <Skeleton />;
   }
 
   const headerNum = viewType === ViewType.REGULAR ? 5 : 3;
@@ -48,42 +49,24 @@ export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
           Wallet Balance
         </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          align="center"
-          sx={{ width: headerWidth }}
+        <TooltipText
+          tooltip="The interest rate earned on a supplied position. This rate will fluctuate based on the market conditions and is accrued to the supplied position."
+          width={headerWidth}
         >
-          APY
-        </Typography>
+          APR
+        </TooltipText>
 
         {viewType !== ViewType.MOBILE && (
-          <Tooltip
-            // title="The percent of this asset's value added to your borrow capacity."
-            title=""
-            placement="top"
-            enterTouchDelay={0}
-            enterDelay={500}
-            leaveTouchDelay={3000}
+          <TooltipText
+            tooltip="The percent of this asset's value added to your borrow capacity."
+            width={headerWidth}
           >
-            <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-              <Typography variant="body2" color="text.secondary" align="center">
-                Collateral Factor
-              </Typography>
-              {/* <HelpOutline
-                sx={{
-                  color: 'text.secondary',
-                  width: '15px',
-                  marginTop: '-4px',
-                  marginLeft: '4px',
-                }}
-              /> */}
-            </Box>
-          </Tooltip>
+            Collateral Factor
+          </TooltipText>
         )}
         <Box sx={{ width: viewType === ViewType.MOBILE ? 'auto' : headerWidth }} />
       </Box>
-      {Array.from(poolData.reserves.values()).map((reserve) => (
+      {Array.from(pool.reserves.values()).map((reserve) => (
         <LendMarketCard key={reserve.assetId} poolId={poolId} reserve={reserve} />
       ))}
     </Box>

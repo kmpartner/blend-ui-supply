@@ -1,24 +1,42 @@
 import type { NextPage } from 'next';
-import { Divider } from '../components/common/Divider';
-import { Row } from '../components/common/Row';
-import { SectionBase } from '../components/common/SectionBase';
-import { MarketCard } from '../components/markets/MarketCard';
-import { useStore } from '../store/store';
+import { useState } from 'react';
+import { useSettings } from '../contexts';
+import { useBackstop } from '../hooks/api';
 
 const Markets: NextPage = () => {
-  const pools = useStore((state) => state.pools);
+  const { data: backstop } = useBackstop();
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const { blockedPools } = useSettings();
+
+  const rewardZone = [...(backstop?.config?.rewardZone ?? [])].reverse();
+
+  const safeRewardZone = rewardZone.filter((poolId) => !blockedPools.includes(poolId));
+
+  function handlePoolLoaded(index: number) {
+    if (index >= currentIndex) {
+      setCurrentIndex(Math.min(currentIndex + 1, safeRewardZone.length));
+    }
+  }
 
   return (
     <>
-      <Row>
+      {/* <Row>
         <SectionBase type="alt" sx={{ margin: '6px', padding: '6px' }}>
           Markets
         </SectionBase>
       </Row>
       <Divider />
-      {Array.from(pools.keys()).map((poolId) => (
-        <MarketCard key={poolId} poolId={poolId}></MarketCard>
-      ))}
+      {safeRewardZone.slice(0, currentIndex + 1).map((poolId, index) => {
+        return (
+          <MarketCard
+            key={poolId}
+            poolId={poolId}
+            index={index}
+            onLoaded={handlePoolLoaded}
+          ></MarketCard>
+        );
+      })} */}
     </>
   );
 };

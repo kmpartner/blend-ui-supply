@@ -2,22 +2,28 @@ import { Reserve } from '@blend-capital/blend-sdk';
 import { Box, BoxProps, Typography, useTheme } from '@mui/material';
 import { ViewType, useSettings } from '../../contexts';
 import * as formatter from '../../utils/formatter';
-import { getTokenLinkFromReserve } from '../../utils/token';
+import { LinkBox } from '../common/LinkBox';
 import { TokenHeader } from '../common/TokenHeader';
 import { StackedApr } from './StackedApr';
 
 export interface MarketsListItemProps extends BoxProps {
-  reserveData: Reserve;
+  poolId: string;
+  reserve: Reserve;
 }
 
-export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, sx, ...props }) => {
+export const MarketsListItem: React.FC<MarketsListItemProps> = ({
+  poolId,
+  reserve,
+  sx,
+  ...props
+}) => {
   const theme = useTheme();
   const { viewType } = useSettings();
 
   const tableNum = viewType == ViewType.REGULAR ? 6 : 3;
   const tableWidth = `${(100 / tableNum).toFixed(2)}%`;
   return (
-    <Box
+    <LinkBox
       sx={{
         type: 'alt',
         display: 'flex',
@@ -31,10 +37,7 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
         },
         ...sx,
       }}
-      onClick={() => {
-        const link = getTokenLinkFromReserve(reserveData);
-        window.open(link, '_blank')
-      }}
+      to={{ pathname: '/asset', query: { poolId: poolId, assetId: reserve.assetId } }}
       {...props}
     >
       <Box
@@ -43,11 +46,10 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '6px',
           type: 'alt',
         }}
       >
-        <TokenHeader id={reserveData.assetId} sx={{ width: tableWidth, marginRight: '12px' }} />
+        <TokenHeader reserve={reserve} sx={{ width: tableWidth }} />
         <Box
           sx={{
             width: tableWidth,
@@ -56,9 +58,7 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
             alignItems: 'center',
           }}
         >
-          <Typography variant="body1">
-            {formatter.toBalance(reserveData.estimates.supplied)}
-          </Typography>
+          <Typography variant="body1">{formatter.toBalance(reserve.totalSupplyFloat())}</Typography>
         </Box>
         <Box
           sx={{
@@ -69,7 +69,7 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
           }}
         >
           <Typography variant="body1">
-            {formatter.toBalance(reserveData.estimates.borrowed)}
+            {formatter.toBalance(reserve.totalLiabilitiesFloat())}
           </Typography>
         </Box>
         {tableNum >= 6 && (
@@ -83,7 +83,7 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
               }}
             >
               <Typography variant="body1">
-                {formatter.toPercentage(reserveData.config.c_factor / 1e7)}
+                {formatter.toPercentage(reserve.config.c_factor / 1e7)}
               </Typography>
             </Box>
             <Box
@@ -95,7 +95,7 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
               }}
             >
               <Typography variant="body1">
-                {formatter.toPercentage(1 / (reserveData.config.l_factor / 1e7))}
+                {formatter.toPercentage(1 / (reserve.config.l_factor / 1e7))}
               </Typography>
             </Box>
             <Box
@@ -107,13 +107,13 @@ export const MarketsListItem: React.FC<MarketsListItemProps> = ({ reserveData, s
               }}
             >
               <StackedApr
-                aprLend={formatter.toPercentage(reserveData.estimates.supplyApy)}
-                aprBorrow={formatter.toPercentage(reserveData.estimates.apy)}
+                aprLend={formatter.toPercentage(reserve.supplyApr)}
+                aprBorrow={formatter.toPercentage(reserve.borrowApr)}
               ></StackedApr>
             </Box>
           </>
         )}
       </Box>
-    </Box>
+    </LinkBox>
   );
 };

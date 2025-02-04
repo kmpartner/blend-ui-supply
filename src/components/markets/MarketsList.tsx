@@ -4,10 +4,10 @@ import { ViewType, useSettings } from '../../contexts';
 import { MarketsListItem } from './MarketsListItem';
 
 export interface MarketListProps extends BoxProps {
-  poolData: Pool;
+  pool: Pool;
 }
 
-export const MarketsList: React.FC<MarketListProps> = ({ poolData }) => {
+export const MarketsList: React.FC<MarketListProps> = ({ pool }) => {
   const { viewType } = useSettings();
 
   const headerNum = viewType == ViewType.REGULAR ? 6 : 3;
@@ -33,11 +33,7 @@ export const MarketsList: React.FC<MarketListProps> = ({ poolData }) => {
           type: 'alt',
         }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ width: headerWidth, marginRight: '12px' }}
-        >
+        <Typography variant="body2" color="text.secondary" sx={{ width: headerWidth }}>
           Asset
         </Typography>
         <Typography
@@ -80,14 +76,14 @@ export const MarketsList: React.FC<MarketListProps> = ({ poolData }) => {
               align="center"
               sx={{ width: headerWidth }}
             >
-              APY
+              APR
             </Typography>
           </>
         )}
       </Box>
-      {poolData.reserves.size > 0 &&
-        Array.from(poolData.reserves.values()).map((reserve) => (
-          <MarketsListItem key={reserve.assetId} reserveData={reserve} />
+      {pool.reserves.size > 0 &&
+        Array.from(pool.reserves.values()).map((reserve) => (
+          <MarketsListItem key={reserve.assetId} poolId={pool.id} reserve={reserve} />
         ))}
     </Box>
   );

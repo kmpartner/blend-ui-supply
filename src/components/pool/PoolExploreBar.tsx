@@ -1,8 +1,5 @@
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useTheme } from '@mui/material';
 import { useSettings, ViewType } from '../../contexts';
-import { LinkBox } from '../common/LinkBox';
-import { OpaqueButton } from '../common/OpaqueButton';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
@@ -19,7 +16,7 @@ export const PoolExploreBar: React.FC<PoolComponentProps> = ({ poolId }) => {
           <Section width={SectionSize.LARGE}>
             <PoolMenu poolId={poolId} />
           </Section>
-          <Section width={SectionSize.SMALL} sx={{ alignItems: 'center' }}>
+          {/* <Section width={SectionSize.SMALL} sx={{ alignItems: 'center' }}>
             <LinkBox sx={{ width: '100%', height: '100%' }} to={{ pathname: '/' }}>
               <OpaqueButton
                 palette={theme.palette.primary}
@@ -29,7 +26,7 @@ export const PoolExploreBar: React.FC<PoolComponentProps> = ({ poolId }) => {
                 <ArrowForwardIcon fontSize="inherit" />
               </OpaqueButton>
             </LinkBox>
-          </Section>
+          </Section> */}
         </>
       )}
       {viewType !== ViewType.REGULAR && (

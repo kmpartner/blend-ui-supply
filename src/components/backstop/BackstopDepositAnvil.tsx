@@ -1,14 +1,24 @@
-import { BackstopContract, parseResult, PoolBackstopActionArgs } from '@blend-capital/blend-sdk';
+import {
+  BackstopContract,
+  BackstopPoolUserEst,
+  parseResult,
+  PoolBackstopActionArgs,
+} from '@blend-capital/blend-sdk';
 import { Box, Typography, useTheme } from '@mui/material';
-import { SorobanRpc } from '@stellar/stellar-sdk';
+import { Horizon, rpc } from '@stellar/stellar-sdk';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useSettings, ViewType } from '../../contexts';
 import { TxStatus, TxType, useWallet } from '../../contexts/wallet';
+import {
+  useBackstop,
+  useBackstopPool,
+  useBackstopPoolUser,
+  useTokenBalance,
+} from '../../hooks/api';
 import { RPC_DEBOUNCE_DELAY, useDebouncedState } from '../../hooks/debounce';
-import { useStore } from '../../store/store';
 import { toBalance } from '../../utils/formatter';
-import { scaleInputToBigInt } from '../../utils/scval';
+import { bigintToInput, scaleInputToBigInt } from '../../utils/scval';
 import { getErrorFromSim } from '../../utils/txSim';
 import { AnvilAlert } from '../common/AnvilAlert';
 import { InputBar } from '../common/InputBar';
@@ -17,6 +27,7 @@ import { OpaqueButton } from '../common/OpaqueButton';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
+import { Skeleton } from '../common/Skeleton';
 import { TxOverview } from '../common/TxOverview';
 import { Value } from '../common/Value';
 import { ValueChange } from '../common/ValueChange';
@@ -26,26 +37,26 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
   const { viewType } = useSettings();
   const { connected, walletAddress, backstopDeposit, txStatus, txType, isLoading } = useWallet();
 
-  const backstopData = useStore((state) => state.backstop);
-  const backstopPoolData = useStore((state) => state.backstop?.pools?.get(poolId));
-  const userBackstopData = useStore((state) => state.backstopUserData);
-  const userBackstopEst = userBackstopData?.estimates.get(poolId);
-  const userBalance = Number(userBackstopData?.tokens ?? BigInt(0)) / 1e7;
-  const decimals = 7;
-  let sharesToTokens = backstopPoolData
-    ? Number(backstopPoolData.poolBalance.tokens) /
-      Number(backstopPoolData.poolBalance.shares) /
-      1e7
-    : 0;
+  const { data: backstop } = useBackstop();
+  const { data: backstopPoolData } = useBackstopPool(poolId);
+  const { data: backstopUserPoolData } = useBackstopPoolUser(poolId);
+  const { data: lpTokenRes } = useTokenBalance(
+    backstop?.config?.backstopTkn,
+    undefined,
+    // passing undefined will cause the token balance to not load, and the horizon
+    // account is not needed for getting the LP token balance
+    {} as Horizon.AccountResponse
+  );
 
   const [toDeposit, setToDeposit] = useState<string>('');
-  const [simResponse, setSimResponse] = useState<SorobanRpc.Api.SimulateTransactionResponse>();
+  const [simResponse, setSimResponse] = useState<rpc.Api.SimulateTransactionResponse>();
   const [parsedSimResult, setParsedSimResult] = useState<bigint>();
   const [loadingEstimate, setLoadingEstimate] = useState<boolean>(false);
   if (txStatus === TxStatus.SUCCESS && txType === TxType.CONTRACT && Number(toDeposit) != 0) {
     setToDeposit('');
   }
   const loading = isLoading || loadingEstimate;
+  const decimals = 7;
 
   useDebouncedState(toDeposit, RPC_DEBOUNCE_DELAY, txType, async () => {
     setSimResponse(undefined);
@@ -55,13 +66,32 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
 
   const { isSubmitDisabled, isMaxDisabled, reason, disabledType, isError, extraContent } = useMemo(
     () => getErrorFromSim(toDeposit, decimals, loading, simResponse, undefined),
-    [simResponse, toDeposit, userBalance, loading]
+    [simResponse, toDeposit, lpTokenRes, loading]
   );
 
+  if (
+    backstop === undefined ||
+    backstopPoolData === undefined ||
+    backstopUserPoolData === undefined
+  ) {
+    return <Skeleton />;
+  }
+
+  const backstopUserEst = BackstopPoolUserEst.build(
+    backstop,
+    backstopPoolData,
+    backstopUserPoolData
+  );
+  const lpTokenBalance = lpTokenRes ?? BigInt(0);
+
+  let sharesToTokens = backstopPoolData
+    ? Number(backstopPoolData.poolBalance.tokens) /
+      Number(backstopPoolData.poolBalance.shares) /
+      1e7
+    : 0;
+
   const handleDepositMax = () => {
-    if (userBackstopData) {
-      setToDeposit(userBalance.toFixed(7));
-    }
+    setToDeposit(bigintToInput(lpTokenBalance, 7));
   };
 
   const handleSubmitTransaction = async (sim: boolean) => {
@@ -74,7 +104,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
       const response = await backstopDeposit(depositArgs, sim);
       if (response) {
         setSimResponse(response);
-        if (SorobanRpc.Api.isSimulationSuccess(response)) {
+        if (rpc.Api.isSimulationSuccess(response)) {
           const result = parseResult(response, BackstopContract.parsers.deposit);
           setParsedSimResult(result);
         }
@@ -143,7 +173,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
           <Box sx={{ marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
               {`$${toBalance(
-                Number(toDeposit ?? 0) * (backstopData?.backstopToken.lpTokenPrice ?? 1)
+                Number(toDeposit ?? 0) * (backstop?.backstopToken.lpTokenPrice ?? 1)
               )}`}
             </Typography>
             {viewType === ViewType.MOBILE && (
@@ -166,7 +196,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas  (Fee) Please make sure you have enough XLM in your wallet.
+                    Gas
                   </>
                 }
                 value={`${toBalance(
@@ -176,10 +206,10 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
               />
               <ValueChange
                 title="Your total deposit"
-                curValue={`${toBalance(userBackstopEst?.tokens)} BLND-USDC LP`}
+                curValue={`${toBalance(backstopUserEst.tokens)} BLND-USDC LP`}
                 newValue={`${toBalance(
-                  parsedSimResult && userBackstopEst
-                    ? userBackstopEst.tokens + Number(parsedSimResult) * sharesToTokens
+                  parsedSimResult && backstopUserEst
+                    ? backstopUserEst.tokens + Number(parsedSimResult) * sharesToTokens
                     : 0
                 )} BLND-USDC LP`}
               />

@@ -1,11 +1,11 @@
-import { Box, Skeleton, Typography, useTheme } from '@mui/material';
-import { SorobanRpc } from '@stellar/stellar-sdk';
+import { Box, Typography, useTheme } from '@mui/material';
+import { rpc } from '@stellar/stellar-sdk';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ViewType, useSettings } from '../../contexts';
 import { TxStatus, TxType, useWallet } from '../../contexts/wallet';
+import { useBackstop, useHorizonAccount, useTokenBalance } from '../../hooks/api';
 import { RPC_DEBOUNCE_DELAY, useDebouncedState } from '../../hooks/debounce';
-import { useStore } from '../../store/store';
 import { estExitPool } from '../../utils/comet';
 import { toBalance } from '../../utils/formatter';
 import { requiresTrustline } from '../../utils/horizon';
@@ -18,23 +18,28 @@ import { InputButton } from '../common/InputButton';
 import { OpaqueButton } from '../common/OpaqueButton';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
+import { Skeleton } from '../common/Skeleton';
 import { TxOverview } from '../common/TxOverview';
 import { Value } from '../common/Value';
 import { ValueChange } from '../common/ValueChange';
 
 export const BackstopExitAnvil = () => {
   const theme = useTheme();
-  const { viewType } = useSettings();
-  const { walletAddress, txStatus, cometExit, txType, isLoading, createTrustline } = useWallet();
-
-  const network = useStore((state) => state.network);
-  const backstopData = useStore((state) => state.backstop);
-  const userBackstopData = useStore((state) => state.backstopUserData);
-  const balancesByAddress = useStore((state) => state.balances);
-  const userAccount = useStore((state) => state.account);
+  const { viewType, network } = useSettings();
+  const { walletAddress, txStatus, cometExit, txType, isLoading, createTrustlines } = useWallet();
 
   const BLND_ID = BLND_ASSET.contractId(network.passphrase);
   const USDC_ID = USDC_ASSET.contractId(network.passphrase);
+
+  const { data: backstop } = useBackstop();
+  const { data: horizonAccount } = useHorizonAccount();
+  const { data: blndBalanceRes } = useTokenBalance(BLND_ID, BLND_ASSET, horizonAccount);
+  const { data: usdcBalanceRes } = useTokenBalance(USDC_ID, USDC_ASSET, horizonAccount);
+  const { data: lpBalanceRes } = useTokenBalance(
+    backstop?.backstopToken.id,
+    undefined,
+    horizonAccount
+  );
 
   const [input, setInput] = useState<{ amount: string; slippage: string }>({
     amount: '',
@@ -45,7 +50,7 @@ export const BackstopExitAnvil = () => {
   const [minUSDCOut, setMinUSDCOut] = useState<number>(0);
 
   const [loadingEstimate, setLoadingEstimate] = useState<boolean>(false);
-  const [simResponse, setSimResponse] = useState<SorobanRpc.Api.SimulateTransactionResponse>();
+  const [simResponse, setSimResponse] = useState<rpc.Api.SimulateTransactionResponse>();
   const loading = isLoading || loadingEstimate;
   const decimals = 7;
 
@@ -63,16 +68,16 @@ export const BackstopExitAnvil = () => {
     setInput({ amount: input.amount, slippage: value });
   };
 
-  const blndBalance = balancesByAddress.get(BLND_ID) ?? BigInt(0);
-  const usdcBalance = balancesByAddress.get(USDC_ID) ?? BigInt(0);
-  const lpBalance = userBackstopData?.tokens ?? BigInt(0);
+  const blndBalance = blndBalanceRes ?? BigInt(0);
+  const usdcBalance = usdcBalanceRes ?? BigInt(0);
+  const lpBalance = lpBalanceRes ?? BigInt(0);
 
   /** run function on each state change */
   useDebouncedState(input, RPC_DEBOUNCE_DELAY, txType, handleInputChange);
 
   const AddBLNDTrustlineButton = (
     <OpaqueButton
-      onClick={async () => createTrustline(BLND_ASSET)}
+      onClick={async () => createTrustlines([BLND_ASSET])}
       palette={theme.palette.warning}
       sx={{ padding: '6px 24px', margin: '12px auto' }}
     >
@@ -81,7 +86,7 @@ export const BackstopExitAnvil = () => {
   );
   const AddUSDCTrustlineButton = (
     <OpaqueButton
-      onClick={async () => createTrustline(USDC_ASSET)}
+      onClick={async () => createTrustlines([USDC_ASSET])}
       palette={theme.palette.warning}
       sx={{ padding: '6px 24px', margin: '12px auto' }}
     >
@@ -92,8 +97,8 @@ export const BackstopExitAnvil = () => {
   // verify that the user can act
   const { isSubmitDisabled, isMaxDisabled, reason, disabledType, isError, extraContent } =
     useMemo(() => {
-      const hasBLNDTrustline = !requiresTrustline(userAccount, BLND_ASSET);
-      const hasUSDCTrustline = !requiresTrustline(userAccount, USDC_ASSET);
+      const hasBLNDTrustline = !requiresTrustline(horizonAccount, BLND_ASSET);
+      const hasUSDCTrustline = !requiresTrustline(horizonAccount, USDC_ASSET);
       if (lpBalance === BigInt(0)) {
         return {
           isSubmitDisabled: true,
@@ -139,10 +144,10 @@ export const BackstopExitAnvil = () => {
       } else {
         return getErrorFromSim(input.amount, decimals, loading, simResponse, undefined);
       }
-    }, [input, loadingEstimate, simResponse]);
+    }, [input, loadingEstimate, simResponse, lpBalance]);
 
-  if (backstopData === undefined) {
-    return <Skeleton variant="rectangular" width="100%" height="100px" animation="wave" />;
+  if (backstop === undefined) {
+    return <Skeleton />;
   }
 
   if (txStatus === TxStatus.SUCCESS && txType === TxType.CONTRACT && input.amount !== '') {
@@ -161,14 +166,14 @@ export const BackstopExitAnvil = () => {
     setLoadingEstimate(true);
     clearInputResultState();
     const validDecimals = (amount.split('.')[1]?.length ?? 0) <= decimals;
-    if (validDecimals && backstopData?.config.backstopTkn && walletAddress) {
+    if (validDecimals && backstop?.config.backstopTkn && walletAddress) {
       const inputAsBigInt = scaleInputToBigInt(amount, decimals);
       const slippageAsNum = Number(slippage) / 100;
-      let { blnd, usdc } = estExitPool(backstopData.backstopToken, inputAsBigInt, slippageAsNum);
+      let { blnd, usdc } = estExitPool(backstop.backstopToken, inputAsBigInt, slippageAsNum);
       setMinBLNDOut(blnd);
       setMinUSDCOut(usdc);
       cometExit(
-        backstopData.config.backstopTkn,
+        backstop.config.backstopTkn,
         {
           user: walletAddress,
           poolAmount: inputAsBigInt,
@@ -177,7 +182,7 @@ export const BackstopExitAnvil = () => {
         },
         true
       )
-        .then((sim: SorobanRpc.Api.SimulateTransactionResponse | undefined) => {
+        .then((sim: rpc.Api.SimulateTransactionResponse | undefined) => {
           setSimResponse(sim);
         })
         .catch((e) => {
@@ -192,9 +197,9 @@ export const BackstopExitAnvil = () => {
 
   async function handleSubmitExit() {
     const validDecimals = (input.amount.split('.')[1]?.length ?? 0) <= decimals;
-    if (validDecimals && backstopData?.config.backstopTkn) {
+    if (validDecimals && backstop?.config.backstopTkn) {
       await cometExit(
-        backstopData?.config.backstopTkn,
+        backstop?.config.backstopTkn,
         {
           user: walletAddress,
           poolAmount: scaleInputToBigInt(input.amount, decimals),
@@ -206,7 +211,7 @@ export const BackstopExitAnvil = () => {
     }
   }
 
-  const inputInUSDC = Number(input.amount) * backstopData.backstopToken.lpTokenPrice;
+  const inputInUSDC = Number(input.amount) * backstop.backstopToken.lpTokenPrice;
 
   return (
     <Row>
@@ -355,7 +360,7 @@ export const BackstopExitAnvil = () => {
                 title={
                   <>
                     <Image src="/icons/dashboard/gascan.svg" alt="blend" width={20} height={20} />{' '}
-                    Gas (Fee) Please make sure you have enough XLM in your wallet.
+                    Gas
                   </>
                 }
                 value={`${toBalance(

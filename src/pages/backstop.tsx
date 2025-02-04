@@ -1,106 +1,151 @@
-import { BackstopClaimArgs, parseResult } from '@blend-capital/blend-sdk';
+import {
+  BackstopClaimArgs,
+  BackstopContract,
+  BackstopPoolEst,
+  BackstopPoolUserEst,
+  FixedMath,
+  parseResult,
+} from '@blend-capital/blend-sdk';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import HelpOutline from '@mui/icons-material/HelpOutline';
-import { Box, Tooltip, Typography } from '@mui/material';
-import { SorobanRpc, scValToBigInt, xdr } from '@stellar/stellar-sdk';
+import { Box, Typography } from '@mui/material';
+import { rpc, scValToBigInt, xdr } from '@stellar/stellar-sdk';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import { BackstopAPY } from '../components/backstop/BackstopAPY';
+import { BackstopAPR } from '../components/backstop/BackstopAPR';
 import { BackstopQueueMod } from '../components/backstop/BackstopQueueMod';
 import { CustomButton } from '../components/common/CustomButton';
 import { Divider } from '../components/common/Divider';
 import { FlameIcon } from '../components/common/FlameIcon';
+import { Icon } from '../components/common/Icon';
 import { LinkBox } from '../components/common/LinkBox';
 import { OpaqueButton } from '../components/common/OpaqueButton';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { SectionBase } from '../components/common/SectionBase';
 import { StackedText } from '../components/common/StackedText';
-import { TokenIcon } from '../components/common/TokenIcon';
 import { PoolExploreBar } from '../components/pool/PoolExploreBar';
-import { useSettings } from '../contexts';
+import { PoolHealthBanner } from '../components/pool/PoolHealthBanner';
 import { useWallet } from '../contexts/wallet';
-import { useStore } from '../store/store';
+import {
+  useBackstop,
+  useBackstopPool,
+  useBackstopPoolUser,
+  useHorizonAccount,
+  useSimulateOperation,
+  useTokenBalance,
+} from '../hooks/api';
 import theme from '../theme';
+import { CometClient } from '../utils/comet';
 import { toBalance, toPercentage } from '../utils/formatter';
 
 const Backstop: NextPage = () => {
   const router = useRouter();
-  const { viewType } = useSettings();
-  const { connected, walletAddress, backstopClaim, cometSingleSidedDeposit } = useWallet();
-  const loadBlendData = useStore((state) => state.loadBlendData);
-  const network = useStore((state) => state.network);
-  const rpcServer = useStore((state) => state.rpcServer());
+  const { connected, walletAddress, backstopClaim, restore } = useWallet();
+
   const { poolId } = router.query;
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
 
-  const [lpTokenEmissions, setLpTokenEmissions] = useState<bigint>();
+  const { data: backstop } = useBackstop();
+  const { data: backstopPoolData } = useBackstopPool(safePoolId);
+  const { data: userBackstopPoolData } = useBackstopPoolUser(safePoolId);
+  const { data: horizonAccount } = useHorizonAccount();
+  const { data: lpBalance } = useTokenBalance(
+    backstop?.backstopToken?.id ?? '',
+    undefined,
+    horizonAccount
+  );
 
-  const backstopPoolData = useStore((state) => state.backstop?.pools?.get(safePoolId));
-  const backstopData = useStore((state) => state.backstop);
-  const userBackstopData = useStore((state) => state.backstopUserData);
-  const userPoolEstimates = userBackstopData?.estimates.get(safePoolId);
-  const userPoolBackstopData = userBackstopData?.balances.get(safePoolId);
-  const balancesByAddress = useStore((state) => state.balances);
+  const backstopPoolEst =
+    backstop !== undefined && backstopPoolData !== undefined
+      ? BackstopPoolEst.build(backstop.backstopToken, backstopPoolData.poolBalance)
+      : undefined;
+
+  const backstopUserEst =
+    userBackstopPoolData !== undefined && backstop !== undefined && backstopPoolData !== undefined
+      ? BackstopPoolUserEst.build(backstop, backstopPoolData, userBackstopPoolData)
+      : undefined;
+
+  const backstopDepositUSD =
+    backstopUserEst?.tokens && backstop?.backstopToken.lpTokenPrice
+      ? backstopUserEst?.tokens * backstop.backstopToken.lpTokenPrice
+      : undefined;
+
+  const lpBalanceUSD =
+    lpBalance && backstop?.backstopToken.lpTokenPrice
+      ? (Number(lpBalance) / 1e7) * backstop.backstopToken.lpTokenPrice
+      : undefined;
+
+  const backstopContract = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+  const claimArgs: BackstopClaimArgs = {
+    from: walletAddress,
+    pool_addresses: [safePoolId],
+    to: walletAddress,
+  };
+  const claimOp = safePoolId && walletAddress !== '' ? backstopContract.claim(claimArgs) : '';
+  const {
+    data: claimSimResult,
+    isLoading: isClaimLoading,
+    refetch: refetchClaimSim,
+  } = useSimulateOperation(claimOp, backstop !== undefined && claimOp !== '' && connected);
+  const isRestore =
+    isClaimLoading === false &&
+    claimSimResult !== undefined &&
+    rpc.Api.isSimulationRestore(claimSimResult);
+
+  const cometContract =
+    backstop !== undefined ? new CometClient(backstop.backstopToken.id) : undefined;
+  const lpMintEstOp =
+    backstop && cometContract && backstopUserEst && walletAddress !== ''
+      ? cometContract
+          .depositTokenInGetLPOut({
+            depositTokenAddress: backstop.config.blndTkn,
+            depositTokenAmount: FixedMath.toFixed(backstopUserEst.emissions, 7),
+            minLPTokenAmount: BigInt(0),
+            user: backstop.id,
+          })
+          .toXDR('base64')
+      : undefined;
+
+  const { data: mintSimResult, refetch: refetchMintSim } = useSimulateOperation(
+    lpMintEstOp ?? '',
+    lpMintEstOp !== undefined && !isRestore
+  );
+  let lpTokenEmissions: bigint = BigInt(0);
+  if (mintSimResult && rpc.Api.isSimulationSuccess(mintSimResult)) {
+    lpTokenEmissions =
+      parseResult(mintSimResult, (xdrString: string) => {
+        return scValToBigInt(xdr.ScVal.fromXDR(xdrString, 'base64'));
+      }) ?? BigInt(0);
+  }
+
+  const backstopClaimUSD =
+    lpTokenEmissions && backstop?.backstopToken.lpTokenPrice
+      ? (Number(lpTokenEmissions) / 1e7) * backstop.backstopToken.lpTokenPrice
+      : undefined;
 
   const handleClaimEmissionsClick = async () => {
-    if (connected && userBackstopData && userPoolEstimates?.emissions) {
+    if (connected && userBackstopPoolData) {
       let claimArgs: BackstopClaimArgs = {
         from: walletAddress,
         pool_addresses: [safePoolId],
         to: walletAddress,
       };
-      setLpTokenEmissions(BigInt(0));
       await backstopClaim(claimArgs, false);
-      await loadBlendData(true, safePoolId, walletAddress);
+      refetchClaimSim();
+      refetchMintSim();
     }
   };
 
-  async function getLPEstimate(amount: bigint, depositTokenAddress: string, source: string) {
-    if (connected && backstopData?.config.backstopTkn) {
-      let response = await cometSingleSidedDeposit(
-        backstopData.config.backstopTkn,
-        {
-          depositTokenAddress: depositTokenAddress,
-          depositTokenAmount: amount,
-          minLPTokenAmount: BigInt(0),
-          user: source,
-        },
-        true
-      );
-      if (response) {
-        return SorobanRpc.Api.isSimulationSuccess(response)
-          ? parseResult(response, (xdrString: string) => {
-              return scValToBigInt(xdr.ScVal.fromXDR(xdrString, 'base64'));
-            })
-          : BigInt(0);
-      }
+  const handleRestore = async () => {
+    if (claimSimResult && rpc.Api.isSimulationRestore(claimSimResult)) {
+      await restore(claimSimResult);
+      refetchClaimSim();
     }
-    return BigInt(0);
-  }
-
-  useEffect(() => {
-    const update = async () => {
-      if (
-        backstopData?.config?.blndTkn !== undefined &&
-        userPoolEstimates?.emissions !== undefined &&
-        userPoolEstimates.emissions > 0
-      ) {
-        let emissions_as_bigint = BigInt((userPoolEstimates.emissions * 1e7).toFixed(0));
-        let lp_tokens_emitted = await getLPEstimate(
-          emissions_as_bigint,
-          backstopData.config.blndTkn,
-          backstopData.id
-        );
-        setLpTokenEmissions(lp_tokens_emitted);
-      }
-    };
-    update();
-  }, [userPoolEstimates?.emissions]);
+  };
 
   return (
     <>
+      <PoolHealthBanner poolId={safePoolId} />
       <PoolExploreBar poolId={safePoolId} />
       <Row>
         <SectionBase type="alt" sx={{ margin: '6px', padding: '6px' }}>
@@ -109,43 +154,82 @@ const Backstop: NextPage = () => {
       </Row>
       <Divider />
       <Row>
-        <Section width={SectionSize.THIRD} sx={{ alignItems: 'center' }}>
-          <BackstopAPY poolId={safePoolId} />
-        </Section>
         <Section width={SectionSize.THIRD}>
-          <Tooltip
-            title="Percent of capital insuring this pool queued for withdrawal (Q4W). A higher percent indicates potential risks."
-            placement="top"
-            enterTouchDelay={0}
-            enterDelay={500}
-            leaveTouchDelay={3000}
-          >
-            <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-              <StackedText
-                title="Q4W"
-                text={toPercentage(backstopPoolData?.estimates?.q4wPercentage)}
-                sx={{ width: '100%', padding: '6px' }}
-              ></StackedText>
-              <HelpOutline
-                sx={{
-                  marginLeft: '-10px',
-                  marginTop: '9px',
-                  width: '15px',
-                  color: 'text.secondary',
-                }}
-              />
-            </Box>
-          </Tooltip>
+          <BackstopAPR poolId={safePoolId} />
         </Section>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Total deposited"
-            text={`$${toBalance(backstopPoolData?.estimates?.totalSpotValue)}`}
+            title="Q4W"
+            text={toPercentage(backstopPoolEst?.q4wPercentage)}
+            sx={{ width: '100%', padding: '6px' }}
+            tooltip="Percent of capital insuring this pool queued for withdrawal (Q4W). A higher percent indicates potential risks."
+          ></StackedText>
+        </Section>
+        <Section width={SectionSize.THIRD}>
+          <StackedText
+            title="Total Deposited"
+            text={`$${toBalance(backstopPoolEst?.totalSpotValue)}`}
             sx={{ width: '100%', padding: '6px' }}
           ></StackedText>
         </Section>
       </Row>
-      {lpTokenEmissions !== undefined && lpTokenEmissions > BigInt(0) && (
+      {isRestore && (
+        <Row>
+          <Section
+            width={SectionSize.FULL}
+            sx={{
+              flexDirection: 'column',
+              paddingTop: '12px',
+            }}
+          >
+            <Typography variant="body2" sx={{ margin: '6px' }}>
+              Emissions to claim
+            </Typography>
+            <Row>
+              <CustomButton
+                sx={{
+                  width: '100%',
+                  margin: '6px',
+                  padding: '12px',
+                  color: theme.palette.text.primary,
+                  backgroundColor: theme.palette.background.default,
+                  '&:hover': {
+                    color: theme.palette.warning.main,
+                  },
+                }}
+                onClick={handleRestore}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      borderRadius: '50%',
+                      backgroundColor: theme.palette.warning.opaque,
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Icon
+                      alt="BLND Token Icon"
+                      src="/icons/tokens/blnd-yellow.svg"
+                      height="24px"
+                      width="18px"
+                      isCircle={false}
+                    />
+                  </Box>
+                  <Typography variant="h4" sx={{ marginLeft: '6px' }}>
+                    {`Restore Data`}
+                  </Typography>
+                </Box>
+                <ArrowForwardIcon fontSize="inherit" />
+              </CustomButton>
+            </Row>
+          </Section>
+        </Row>
+      )}
+      {!isRestore && lpTokenEmissions !== undefined && lpTokenEmissions > BigInt(0) && (
         <Row>
           <Section
             width={SectionSize.FULL}
@@ -173,13 +257,22 @@ const Backstop: NextPage = () => {
               >
                 <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                   <FlameIcon />
-                  <TokenIcon symbol="blndusdclp" sx={{ marginRight: '12px' }}></TokenIcon>
-                  <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                    <Typography variant="h4" sx={{ marginRight: '6px' }}>
-                      {toBalance(lpTokenEmissions, 7)}
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                      BLND-USDC LP
+                  <Icon
+                    src={`/icons/tokens/blndusdclp.svg`}
+                    alt={`blndusdclp`}
+                    sx={{ height: '30px', width: '30px', marginRight: '12px' }}
+                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                      <Typography variant="h4" sx={{ marginRight: '6px' }}>
+                        {toBalance(lpTokenEmissions, 7)}
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                        BLND-USDC LP
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                      {`$${toBalance(backstopClaimUSD)}`}
                     </Typography>
                   </Box>
                 </Box>
@@ -213,13 +306,22 @@ const Backstop: NextPage = () => {
               alignItems: 'center',
             }}
           >
-            <TokenIcon symbol="blndusdclp" sx={{ marginRight: '12px' }}></TokenIcon>
-            <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-              <Typography variant="h4" sx={{ marginRight: '6px' }}>
-                {toBalance(userBackstopData?.tokens, 7)}
-              </Typography>
-              <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                BLND-USDC LP
+            <Icon
+              src={`/icons/tokens/blndusdclp.svg`}
+              alt={`blndusdclp`}
+              sx={{ height: '30px', width: '30px', marginRight: '12px' }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                <Typography variant="h4" sx={{ marginRight: '6px' }}>
+                  {toBalance(lpBalance, 7)}
+                </Typography>
+                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                  BLND-USDC LP
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                {`$${toBalance(lpBalanceUSD)}`}
               </Typography>
             </Box>
           </Box>
@@ -274,13 +376,22 @@ const Backstop: NextPage = () => {
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <TokenIcon symbol="blndusdclp" sx={{ marginRight: '12px' }}></TokenIcon>
-                <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                  <Typography variant="h4" sx={{ marginRight: '6px' }}>
-                    {toBalance(userPoolEstimates?.tokens)}
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                    BLND-USDC LP
+                <Icon
+                  src={`/icons/tokens/blndusdclp.svg`}
+                  alt={`blndusdclp`}
+                  sx={{ height: '30px', width: '30px', marginRight: '12px' }}
+                />
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                    <Typography variant="h4" sx={{ marginRight: '6px' }}>
+                      {toBalance(backstopUserEst?.tokens)}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                      BLND-USDC LP
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                    {`$${toBalance(backstopDepositUSD)}`}
                   </Typography>
                 </Box>
               </Box>

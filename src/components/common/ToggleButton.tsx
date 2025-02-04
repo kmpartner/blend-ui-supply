@@ -19,8 +19,12 @@ export const ToggleButton: React.FC<ToggleButtonProps> = React.forwardRef(
         ) : (
           <Button
             variant="text"
-            color="primary"
-            sx={{ color: theme.palette.common.white, ...sx }}
+            sx={{
+              background: theme.palette.background.paper,
+              color: theme.palette.common.white,
+              '&:hover': { background: theme.palette.background.paper, color: palette.main },
+              ...sx,
+            }}
             {...props}
             ref={ref}
           >

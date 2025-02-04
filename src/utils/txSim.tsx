@@ -1,17 +1,18 @@
 import { ContractErrorType, parseError } from '@blend-capital/blend-sdk';
 import { AlertColor } from '@mui/material';
-import { SorobanRpc } from '@stellar/stellar-sdk';
+import { rpc } from '@stellar/stellar-sdk';
 import { OpaqueButton } from '../components/common/OpaqueButton';
 import { useWallet } from '../contexts/wallet';
 import theme from '../theme';
+
 export function RestoreButton({
   simResponse,
 }: {
-  simResponse: SorobanRpc.Api.SimulateTransactionResponse;
+  simResponse: rpc.Api.SimulateTransactionResponse;
 }) {
   const { restore } = useWallet();
   function handleRestore() {
-    if (simResponse && SorobanRpc.Api.isSimulationRestore(simResponse)) {
+    if (simResponse && rpc.Api.isSimulationRestore(simResponse)) {
       restore(simResponse);
     }
   }
@@ -25,11 +26,12 @@ export function RestoreButton({
     </OpaqueButton>
   );
 }
+
 export function getErrorFromSim(
   input: string | undefined,
   decimals: number,
   loading: boolean,
-  simulationResult: SorobanRpc.Api.SimulateTransactionResponse | undefined,
+  simulationResult: rpc.Api.SimulateTransactionResponse | undefined,
   extraValidations?: () => Partial<SubmitError>
 ): SubmitError {
   let errorProps: SubmitError = {
@@ -47,33 +49,40 @@ export function getErrorFromSim(
     errorProps.reason = 'Please enter an amount.';
     errorProps.disabledType = 'info';
     return errorProps;
-  } else if (input.split('.')[1]?.length > decimals) {
+  }
+  if (input.split('.')[1]?.length > decimals) {
     errorProps.isError = true;
     errorProps.isSubmitDisabled = true;
     errorProps.isMaxDisabled = false;
     errorProps.reason = `You cannot input more than ${decimals} decimal places.`;
     errorProps.disabledType = 'warning';
     return errorProps;
-  } else if (loading) {
+  }
+  if (loading) {
     errorProps.isSubmitDisabled = true;
     errorProps.isError = true;
     errorProps.isMaxDisabled = false;
     errorProps.reason = 'Loading estimate...';
     errorProps.disabledType = 'info';
     return errorProps;
-  } else if (!!extraValidations) {
+  }
+  if (!!extraValidations) {
     errorProps = { ...errorProps, ...extraValidations() };
-    return errorProps;
-  } else if (simulationResult && SorobanRpc.Api.isSimulationRestore(simulationResult)) {
+    if (errorProps.isError) {
+      return errorProps;
+    }
+  }
+  if (simulationResult && rpc.Api.isSimulationRestore(simulationResult)) {
     errorProps.isError = true;
     errorProps.extraContent = <RestoreButton simResponse={simulationResult} />;
     errorProps.isSubmitDisabled = true;
     errorProps.isMaxDisabled = false;
     errorProps.disabledType = 'warning';
     errorProps.reason =
-      'This transaction ran into expired entries that need to be restored before proceeding.';
+      'This transaction ran into expired entries which need to be restored before proceeding.';
     return errorProps;
-  } else if (simulationResult && SorobanRpc.Api.isSimulationError(simulationResult)) {
+  }
+  if (simulationResult && rpc.Api.isSimulationError(simulationResult)) {
     const error = parseError(simulationResult);
     errorProps.isError = true;
     errorProps.isSubmitDisabled = true;

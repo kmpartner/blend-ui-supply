@@ -1,40 +1,59 @@
 import { Box, Typography, useTheme } from '@mui/material';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { FlameIcon } from '../components/common/FlameIcon';
+import { AprDisplay } from '../components/common/AprDisplay';
 import { GoBackHeader } from '../components/common/GoBackHeader';
-import { ReserveDropdown } from '../components/common/ReserveDropdown';
+import { ReserveDetailsBar } from '../components/common/ReserveDetailsBar';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { StackedText } from '../components/common/StackedText';
 import { RepayAnvil } from '../components/repay/RepayAnvil';
-import { useStore } from '../store/store';
-import { getEmissionTextFromValue, toBalance, toPercentage } from '../utils/formatter';
-import { getEmissionsPerYearPerUnit } from '../utils/token';
+import {
+  useBackstop,
+  useHorizonAccount,
+  usePool,
+  usePoolOracle,
+  usePoolUser,
+  useTokenBalance,
+} from '../hooks/api';
+import { toBalance, toPercentage } from '../utils/formatter';
+import { estimateEmissionsApr } from '../utils/math';
 
 const Repay: NextPage = () => {
   const theme = useTheme();
-
   const router = useRouter();
   const { poolId, assetId } = router.query;
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
   const safeAssetId = typeof assetId == 'string' && /^[0-9A-Z]{56}$/.test(assetId) ? assetId : '';
 
-  const poolData = useStore((state) => state.pools.get(safePoolId));
-  const userPoolData = useStore((state) => state.userPoolData.get(safePoolId));
-  const userBalance = useStore((state) => state.balances.get(safeAssetId));
-  const reserve = poolData?.reserves.get(safeAssetId);
+  const { data: pool } = usePool(safePoolId);
+  const { data: poolUser } = usePoolUser(pool);
+  const reserve = pool?.reserves.get(safeAssetId);
+  const { data: horizonAccount } = useHorizonAccount();
+  const { data: tokenBalance } = useTokenBalance(
+    reserve?.assetId,
+    reserve?.tokenMetadata?.asset,
+    horizonAccount,
+    reserve !== undefined
+  );
+  const { data: poolOracle } = usePoolOracle(pool);
+  const { data: backstop } = useBackstop();
+
+  const emissionsPerAsset = reserve !== undefined ? reserve.emissionsPerYearPerBorrowedAsset() : 0;
+  const oraclePrice = reserve ? poolOracle?.getPriceFloat(reserve.assetId) : 0;
+  const emissionApr =
+    backstop && emissionsPerAsset > 0 && oraclePrice
+      ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
+      : undefined;
+
+  const currentDebt = reserve && poolUser ? poolUser.getLiabilitiesFloat(reserve) : undefined;
 
   return (
     <>
       <Row>
-        <GoBackHeader name={poolData?.config.name} />
+        <GoBackHeader name={pool?.config.name} />
       </Row>
-      <Row>
-        <Section width={SectionSize.FULL} sx={{ marginTop: '12px', marginBottom: '12px' }}>
-          <ReserveDropdown action="repay" poolId={safePoolId} activeReserveId={safeAssetId} />
-        </Section>
-      </Row>
+      <ReserveDetailsBar action="repay" poolId={safePoolId} activeReserveId={safeAssetId} />
       <Row>
         <Section width={SectionSize.FULL} sx={{ padding: '12px' }}>
           <Box
@@ -51,10 +70,7 @@ const Repay: NextPage = () => {
                 Debt
               </Typography>
               <Typography variant="h4" sx={{ color: theme.palette.borrow.main }}>
-                {toBalance(
-                  userPoolData?.positionEstimates?.liabilities?.get(safeAssetId) ?? 0,
-                  reserve?.config.decimals
-                )}
+                {toBalance(currentDebt)}
               </Typography>
             </Box>
             <Box>
@@ -68,38 +84,37 @@ const Repay: NextPage = () => {
       <Row>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Borrow APY"
+            title="Borrow APR"
             text={
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {toPercentage(reserve?.estimates.apy)}{' '}
-                <FlameIcon
-                  width={22}
-                  height={22}
-                  title={getEmissionTextFromValue(
-                    getEmissionsPerYearPerUnit(
-                      reserve?.borrowEmissions?.config.eps || BigInt(0),
-                      reserve?.estimates.borrowed || 0,
-                      reserve?.config.decimals
-                    ),
-                    reserve?.tokenMetadata?.symbol || 'token'
-                  )}
+              reserve ? (
+                <AprDisplay
+                  assetSymbol={reserve.tokenMetadata.symbol}
+                  assetApr={reserve.borrowApr}
+                  emissionSymbol={'BLND'}
+                  emissionApr={emissionApr}
+                  isSupply={false}
+                  direction={'horizontal'}
                 />
-              </div>
+              ) : (
+                ''
+              )
             }
             sx={{ width: '100%', padding: '6px' }}
+            tooltip="The interest rate charged for a borrowed position. This rate will fluctuate based on the market conditions and is accrued to the borrowed position."
           ></StackedText>
         </Section>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Liability factor"
+            title="Liability Factor"
             text={toPercentage(reserve?.getLiabilityFactor())}
             sx={{ width: '100%', padding: '6px' }}
+            tooltip="The percent of this asset's value subtracted from your borrow capacity."
           ></StackedText>
         </Section>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Wallet balance"
-            text={toBalance(userBalance, reserve?.config.decimals)}
+            title="Wallet Balance"
+            text={toBalance(tokenBalance, reserve?.config.decimals)}
             sx={{ width: '100%', padding: '6px' }}
           ></StackedText>
         </Section>

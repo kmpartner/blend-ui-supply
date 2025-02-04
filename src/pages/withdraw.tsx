@@ -1,16 +1,16 @@
 import { Box, Typography, useTheme } from '@mui/material';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { FlameIcon } from '../components/common/FlameIcon';
+import { AprDisplay } from '../components/common/AprDisplay';
 import { GoBackHeader } from '../components/common/GoBackHeader';
-import { ReserveDropdown } from '../components/common/ReserveDropdown';
+import { ReserveDetailsBar } from '../components/common/ReserveDetailsBar';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { StackedText } from '../components/common/StackedText';
 import { WithdrawAnvil } from '../components/withdraw/WithdrawAnvil';
-import { useStore } from '../store/store';
-import { getEmissionTextFromValue, toBalance, toPercentage } from '../utils/formatter';
-import { getEmissionsPerYearPerUnit } from '../utils/token';
+import { useBackstop, usePool, usePoolOracle, usePoolUser } from '../hooks/api';
+import { toBalance, toPercentage } from '../utils/formatter';
+import { estimateEmissionsApr } from '../utils/math';
 
 const Withdraw: NextPage = () => {
   const theme = useTheme();
@@ -20,20 +20,26 @@ const Withdraw: NextPage = () => {
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
   const safeAssetId = typeof assetId == 'string' && /^[0-9A-Z]{56}$/.test(assetId) ? assetId : '';
 
-  const poolData = useStore((state) => state.pools.get(safePoolId));
-  const userPoolData = useStore((state) => state.userPoolData.get(safePoolId));
-  const reserve = poolData?.reserves.get(safeAssetId);
+  const { data: pool } = usePool(safePoolId);
+  const { data: poolUser } = usePoolUser(pool);
+  const { data: poolOracle } = usePoolOracle(pool);
+  const { data: backstop } = useBackstop();
+  const reserve = pool?.reserves.get(safeAssetId);
 
+  const currentDeposit = reserve && poolUser ? poolUser.getCollateralFloat(reserve) : undefined;
+  const emissionsPerAsset = reserve !== undefined ? reserve.emissionsPerYearPerSuppliedAsset() : 0;
+  const oraclePrice = reserve ? poolOracle?.getPriceFloat(reserve.assetId) : 0;
+  const emissionApr =
+    backstop && emissionsPerAsset > 0 && oraclePrice
+      ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
+      : undefined;
   return (
     <>
       <Row>
-        <GoBackHeader name={poolData?.config.name} />
+        <GoBackHeader name={pool?.config.name} />
       </Row>
-      <Row>
-        <Section width={SectionSize.FULL} sx={{ marginTop: '12px', marginBottom: '12px' }}>
-          <ReserveDropdown action="withdraw" poolId={safePoolId} activeReserveId={safeAssetId} />
-        </Section>
-      </Row>
+      <ReserveDetailsBar action="withdraw" poolId={safePoolId} activeReserveId={safeAssetId} />
+
       <Row>
         <Section width={SectionSize.FULL} sx={{ padding: '12px' }}>
           <Box
@@ -50,10 +56,7 @@ const Withdraw: NextPage = () => {
                 Available
               </Typography>
               <Typography variant="h4" sx={{ color: theme.palette.lend.main }}>
-                {toBalance(
-                  userPoolData?.positionEstimates?.collateral?.get(safeAssetId) ?? 0,
-                  reserve?.config.decimals
-                )}
+                {toBalance(currentDeposit)}
               </Typography>
             </Box>
             <Box>
@@ -67,38 +70,37 @@ const Withdraw: NextPage = () => {
       <Row>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Supply APY"
+            title="Supply APR"
             text={
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {toPercentage(reserve?.estimates.supplyApy)}{' '}
-                <FlameIcon
-                  width={22}
-                  height={22}
-                  title={getEmissionTextFromValue(
-                    getEmissionsPerYearPerUnit(
-                      reserve?.supplyEmissions?.config.eps || BigInt(0),
-                      reserve?.estimates.supplied || 0,
-                      reserve?.config.decimals
-                    ),
-                    reserve?.tokenMetadata?.symbol || 'token'
-                  )}
+              reserve ? (
+                <AprDisplay
+                  assetSymbol={reserve.tokenMetadata.symbol}
+                  assetApr={reserve.supplyApr}
+                  emissionSymbol={'BLND'}
+                  emissionApr={emissionApr}
+                  isSupply={true}
+                  direction={'horizontal'}
                 />
-              </div>
+              ) : (
+                ''
+              )
             }
             sx={{ width: '100%', padding: '6px' }}
+            tooltip="The interest rate earned on a supplied position. This rate will fluctuate based on the market conditions and is accrued to the supplied position."
           ></StackedText>
         </Section>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Collateral factor"
+            title="Collateral Factor"
             text={toPercentage(reserve?.getCollateralFactor())}
             sx={{ width: '100%', padding: '6px' }}
+            tooltip="The percent of this asset's value added to your borrow capacity."
           ></StackedText>
         </Section>
         <Section width={SectionSize.THIRD}>
           <StackedText
-            title="Total supplied"
-            text={toBalance(reserve?.estimates?.supplied)}
+            title="Total Supplied"
+            text={toBalance(reserve?.totalSupplyFloat())}
             sx={{ width: '100%', padding: '6px' }}
           ></StackedText>
         </Section>

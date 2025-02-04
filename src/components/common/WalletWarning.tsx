@@ -3,7 +3,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Alert, Box, Snackbar, Typography, useTheme } from '@mui/material';
 import React, { useEffect } from 'react';
 import { useWallet } from '../../contexts/wallet';
-import { useStore } from '../../store/store';
+import { useHorizonAccount } from '../../hooks/api';
 import { toCompactAddress } from '../../utils/formatter';
 import { OpaqueButton } from './OpaqueButton';
 import { Row } from './Row';
@@ -11,11 +11,13 @@ import { Row } from './Row';
 export const WalletWarning = () => {
   const theme = useTheme();
   const { connect, connected, walletAddress } = useWallet();
-  const isFunded = useStore((state) => state.isFunded);
-  const loadUserData = useStore((state) => state.loadUserData);
 
   const [openCon, setOpenCon] = React.useState(false);
   const [openError, setOpenError] = React.useState(false);
+
+  const { data: account, refetch: refetchAccount } = useHorizonAccount();
+
+  const notFound = account === undefined;
 
   const handleConnectWallet = (successful: boolean) => {
     if (successful) {
@@ -31,19 +33,19 @@ export const WalletWarning = () => {
   };
 
   useEffect(() => {
-    if (connected && !isFunded) {
-      loadUserData(walletAddress);
+    if (connected && notFound === true) {
+      refetchAccount();
       const refreshInterval = setInterval(async () => {
-        await loadUserData(walletAddress);
+        await refetchAccount();
       }, 3 * 1000);
       return () => clearInterval(refreshInterval);
     }
-  }, [loadUserData, connected, isFunded, walletAddress]);
+  }, [refetchAccount, connected, notFound, walletAddress]);
 
   return (
     <>
       {connected ? (
-        isFunded === false ? (
+        notFound === true ? (
           <Row
             sx={{
               background: theme.palette.warning.opaque,
@@ -85,8 +87,7 @@ export const WalletWarning = () => {
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <InfoOutlinedIcon sx={{ marginRight: '6px' }} />
             <Typography variant="body2">
-              {/* No account connected. Please connect your wallet to use Blend. */}
-              No account connected. Please connect your wallet to use.
+              No account connected. Please connect your wallet to use Blend.
             </Typography>
           </Box>
           <ArrowForwardIcon fontSize="inherit" />
