@@ -14,6 +14,7 @@ export const NavBar = () => {
   const { data: backstop } = useBackstop();
   const poolId = (lastPool ? lastPool : backstop?.config?.rewardZone[0]) ?? '';
 
+  console.log(backstop);
   return (
     <Row sx={{ height: '62px' }}>
       <SectionBase sx={{ width: '50px', margin: '6px' }}>

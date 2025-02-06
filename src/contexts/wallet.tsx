@@ -14,17 +14,11 @@ import {
   AlbedoModule,
   FreighterModule,
   ISupportedWallet,
-  LobstrModule,
   StellarWalletsKit,
   WalletNetwork,
   XBULL_ID,
   xBullModule,
 } from '@creit.tech/stellar-wallets-kit/index';
-import { LedgerModule } from '@creit.tech/stellar-wallets-kit/modules/ledger.module';
-import {
-  WalletConnectAllowedMethods,
-  WalletConnectModule,
-} from '@creit.tech/stellar-wallets-kit/modules/walletconnect.module';
 import { getNetworkDetails as getFreighterNetwork } from '@stellar/freighter-api';
 import {
   Asset,
@@ -128,20 +122,20 @@ const walletKit: StellarWalletsKit = new StellarWalletsKit({
   modules: [
     new xBullModule(),
     new FreighterModule(),
-    new LobstrModule(),
+    // new LobstrModule(),
     new AlbedoModule(),
-    new LedgerModule(),
-    new WalletConnectModule({
-      url: process.env.NEXT_PUBLIC_WALLET_CONNECT_URL ?? '',
-      projectId: 'a0fd1483122937b5cabbe0d85fa9c34e',
-      method: WalletConnectAllowedMethods.SIGN,
-      description: `Blend is a liquidity protocol primitive, enabling the creation of money markets for any use case.`,
-      name: process.env.NEXT_PUBLIC_WALLET_CONNECT_NAME ?? '',
-      icons: [
-        'https://docs.blend.capital/~gitbook/image?url=https%3A%2F%2F3627113658-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FlsteMPgIzWJ2y9ruiTJy%252Fuploads%252FVsvCoCALpHWAw8LpU12e%252FBlend%2520Logo%25403x.png%3Falt%3Dmedia%26token%3De8c06118-43b7-4ddd-9580-6c0fc47ce971&width=768&dpr=2&quality=100&sign=f4bb7bc2&sv=1',
-      ],
-      network: (process.env.NEXT_PUBLIC_PASSPHRASE ?? WalletNetwork.TESTNET) as WalletNetwork,
-    }),
+    // new LedgerModule(),
+    // new WalletConnectModule({
+    //   url: process.env.NEXT_PUBLIC_WALLET_CONNECT_URL ?? '',
+    //   projectId: 'a0fd1483122937b5cabbe0d85fa9c34e',
+    //   method: WalletConnectAllowedMethods.SIGN,
+    //   description: `Blend is a liquidity protocol primitive, enabling the creation of money markets for any use case.`,
+    //   name: process.env.NEXT_PUBLIC_WALLET_CONNECT_NAME ?? '',
+    //   icons: [
+    //     'https://docs.blend.capital/~gitbook/image?url=https%3A%2F%2F3627113658-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FlsteMPgIzWJ2y9ruiTJy%252Fuploads%252FVsvCoCALpHWAw8LpU12e%252FBlend%2520Logo%25403x.png%3Falt%3Dmedia%26token%3De8c06118-43b7-4ddd-9580-6c0fc47ce971&width=768&dpr=2&quality=100&sign=f4bb7bc2&sv=1',
+    //   ],
+    //   network: (process.env.NEXT_PUBLIC_PASSPHRASE ?? WalletNetwork.TESTNET) as WalletNetwork,
+    // }),
   ],
 });
 
