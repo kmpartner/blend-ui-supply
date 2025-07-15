@@ -40,7 +40,7 @@ const Markets: NextPage = () => {
 
   return (
     <>
-      <Row sx={{ alignItems: 'center' }}>
+      {/* <Row sx={{ alignItems: 'center' }}>
         <SectionBase type="alt" sx={{ margin: '6px', padding: '6px' }}>
           Markets
         </SectionBase>
@@ -91,7 +91,7 @@ const Markets: NextPage = () => {
             onLoaded={handlePoolLoaded}
           ></MarketCard>
         );
-      })}
+      })} */}
     </>
   );
 };
