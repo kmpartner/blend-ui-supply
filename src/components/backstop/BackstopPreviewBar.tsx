@@ -80,7 +80,7 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
             marginLeft: '50px',
           }}
         >
-          <StackedText
+          {/* <StackedText
             title="Total Backstop Size"
             titleColor="inherit"
             text={`$${toBalance(backstopPoolEst.totalSpotValue)}`}
@@ -92,10 +92,10 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
             src={'/icons/dashboard/bkstp_size.svg'}
             alt={`backstop size icon`}
             sx={{ marginLeft: '12px' }}
-          />
+          /> */}
         </Box>
       </Box>
-      <LinkBox
+      {/* <LinkBox
         sx={{ width: viewTypeRegular ? '45%' : '100%', display: 'flex' }}
         to={{ pathname: '/backstop', query: { poolId: poolId } }}
       >
@@ -128,7 +128,7 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
           </Box>
           <ArrowForwardIcon fontSize="inherit" />
         </CustomButton>
-      </LinkBox>
+      </LinkBox> */}
     </Row>
   );
 };

@@ -137,14 +137,14 @@ const Dashboard: NextPage = () => {
           >
             Supply
           </ToggleButton>
-          <ToggleButton
+          {/* <ToggleButton
             active={!showLend}
             palette={theme.palette.borrow}
             sx={{ width: '50%', padding: '12px' }}
             onClick={handleBorrowClick}
           >
             Borrow
-          </ToggleButton>
+          </ToggleButton> */}
         </Section>
       </Row>
       <Row sx={{ padding: '6px', justifyContent: 'space-between' }}>

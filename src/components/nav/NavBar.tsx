@@ -21,7 +21,7 @@ export const NavBar = () => {
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
         <a href="https://blend.capital" target="_blank" rel="noreferrer">
           <IconButton sx={{ width: '79%', height: '79%', margin: '6px' }}>
-            <Image src="/icons/blend_logo.svg" layout="fill" alt="Blend Logo" />
+            {/* <Image src="/icons/blend_logo.svg" layout="fill" alt="Blend Logo" /> */}
           </IconButton>
         </a>
       </SectionBase>
@@ -36,17 +36,17 @@ export const NavBar = () => {
           }}
         >
           <Section width={SectionSize.LARGE}>
-            <NavItem to={{ pathname: '/' }} title="Markets" sx={{ width: '33%' }} />
+            {/* <NavItem to={{ pathname: '/' }} title="Markets" sx={{ width: '33%' }} /> */}
             <NavItem
               to={{ pathname: '/dashboard', query: { poolId } }}
               title="Dashboard"
               sx={{ width: '33%' }}
             />
-            <NavItem
+            {/* <NavItem
               to={{ pathname: '/backstop', query: { poolId } }}
               title="Backstop"
               sx={{ width: '33%' }}
-            />
+            /> */}
           </Section>
           <Section width={SectionSize.SMALL}>
             <WalletMenu />
@@ -60,7 +60,7 @@ export const NavBar = () => {
       )}
 
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
-        <NavMenu />
+        {/* <NavMenu /> */}
       </SectionBase>
     </Row>
   );

@@ -19,7 +19,7 @@ export const PoolExploreBar: React.FC<PoolComponentProps> = ({ poolId }) => {
           <Section width={SectionSize.LARGE}>
             <PoolMenu poolId={poolId} />
           </Section>
-          <Section width={SectionSize.SMALL} sx={{ alignItems: 'center' }}>
+          {/* <Section width={SectionSize.SMALL} sx={{ alignItems: 'center' }}>
             <LinkBox sx={{ width: '100%', height: '100%' }} to={{ pathname: '/' }}>
               <OpaqueButton
                 palette={theme.palette.primary}
@@ -29,7 +29,7 @@ export const PoolExploreBar: React.FC<PoolComponentProps> = ({ poolId }) => {
                 <ArrowForwardIcon fontSize="inherit" />
               </OpaqueButton>
             </LinkBox>
-          </Section>
+          </Section> */}
         </>
       )}
       {viewType !== ViewType.REGULAR && (
