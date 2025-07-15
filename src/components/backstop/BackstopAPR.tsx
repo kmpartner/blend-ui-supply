@@ -1,15 +1,16 @@
 import { BackstopPoolEst, FixedMath, PoolEstimate } from '@blend-capital/blend-sdk';
-import { useBackstop, useBackstopPool, usePool, usePoolOracle } from '../../hooks/api';
+import { useBackstop, useBackstopPool, usePool, usePoolMeta, usePoolOracle } from '../../hooks/api';
 import { estSingleSidedDeposit } from '../../utils/comet';
-import { AprDisplay } from '../common/AprDisplay';
 import { PoolComponentProps } from '../common/PoolComponentProps';
+import { RateDisplay } from '../common/RateDisplay';
 import { StackedText } from '../common/StackedText';
 
 export const BackstopAPR: React.FC<PoolComponentProps> = ({ poolId }) => {
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
-  const { data: backstop } = useBackstop();
-  const { data: backstopPoolData } = useBackstopPool(poolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: backstopPoolData } = useBackstopPool(poolMeta);
 
   let estBackstopApr: number | undefined = undefined;
   let backstopEmissionsApr: number | undefined = undefined;
@@ -26,8 +27,8 @@ export const BackstopAPR: React.FC<PoolComponentProps> = ({ poolId }) => {
       backstopPoolData.poolBalance
     );
     estBackstopApr =
-      (FixedMath.toFloat(BigInt(pool.config.backstopRate), 7) *
-        poolEst.avgBorrowApr *
+      (FixedMath.toFloat(BigInt(pool.metadata.backstopRate), 7) *
+        poolEst.avgBorrowApy *
         poolEst.totalBorrowed) /
       backstopPoolEst.totalSpotValue;
     backstopEmissionsApr = estSingleSidedDeposit(
@@ -42,12 +43,12 @@ export const BackstopAPR: React.FC<PoolComponentProps> = ({ poolId }) => {
       title="Backstop APR"
       text={
         estBackstopApr !== undefined ? (
-          <AprDisplay
+          <RateDisplay
             assetSymbol={'BLND-USDC LP'}
-            assetApr={estBackstopApr}
+            assetRate={estBackstopApr}
             emissionSymbol={'BLND-USDC LP'}
             emissionApr={backstopEmissionsApr}
-            isSupply={true}
+            rateType={'earned'}
             direction={'horizontal'}
           />
         ) : (

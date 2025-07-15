@@ -1,21 +1,29 @@
-import { BackstopPool, BackstopPoolEst, Pool, PoolEstimate } from '@blend-capital/blend-sdk';
+import {
+  BackstopPool,
+  BackstopPoolEst,
+  Pool,
+  PoolEstimate,
+  PoolOracle,
+} from '@blend-capital/blend-sdk';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Box, BoxProps, Typography, useTheme } from '@mui/material';
 import { useSettings, ViewType } from '../../contexts';
-import { toCompactAddress, toPercentage } from '../../utils/formatter';
+import { toBalance, toCompactAddress, toPercentage } from '../../utils/formatter';
 import { Icon } from '../common/Icon';
 import { LinkBox } from '../common/LinkBox';
 import { OpaqueButton } from '../common/OpaqueButton';
 import { Row } from '../common/Row';
-import { SectionSize } from '../common/Section';
+import { Section, SectionSize } from '../common/Section';
 import { StackedTextBox } from '../common/StackedTextBox';
+import { TooltipText } from '../common/TooltipText';
 import { PoolIcon } from '../pool/PoolIcon';
 import { MarketsList } from './MarketsList';
 
 export interface MarketCardCollapseProps extends BoxProps {
   pool: Pool;
+  oracle: PoolOracle;
   poolEst: PoolEstimate | undefined;
   backstopPool: BackstopPool;
   backstopPoolEst: BackstopPoolEst;
@@ -23,6 +31,7 @@ export interface MarketCardCollapseProps extends BoxProps {
 
 export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
   pool,
+  oracle,
   poolEst,
   backstopPool,
   backstopPoolEst,
@@ -33,7 +42,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
   const { viewType } = useSettings();
 
   const estBackstopApr = poolEst
-    ? ((pool.config.backstopRate / 1e7) * poolEst.avgBorrowApr * poolEst.totalBorrowed) /
+    ? ((pool.metadata.backstopRate / 1e7) * poolEst.avgBorrowApy * poolEst.totalBorrowed) /
       backstopPoolEst.totalSpotValue
     : undefined;
   return (
@@ -63,7 +72,10 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
             )
           }
         >
-          <PoolIcon name={pool.config.name} sx={{ margin: '6px', height: '30px', width: '30px' }} />
+          <PoolIcon
+            name={pool.metadata.name}
+            sx={{ margin: '6px', height: '30px', width: '30px' }}
+          />
           <Box sx={{ padding: '6px', display: 'flex', flexDirection: 'row', height: '30px' }}>
             <Box sx={{ paddingRight: '12px', lineHeight: '100%' }}>{`Pool ${toCompactAddress(
               pool.id
@@ -93,7 +105,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
           }}
           onClick={() =>
             window.open(
-              `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/contract/${pool.config.oracle}`,
+              `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/contract/${pool.metadata.oracle}`,
               '_blank'
             )
           }
@@ -103,7 +115,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
           </Box>
           <Box sx={{ padding: '6px', display: 'flex', flexDirection: 'row', height: '30px' }}>
             <Box sx={{ paddingRight: '12px', lineHeight: '100%' }}>{`Oracle ${toCompactAddress(
-              pool.config.oracle
+              pool.metadata.oracle
             )}`}</Box>
             <Box>
               <OpenInNewIcon fontSize="inherit" />
@@ -122,14 +134,14 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
             cursor: 'pointer',
           }}
           onClick={() => {
-            if (pool.config.admin.charAt(0) === 'G') {
+            if (pool.metadata.admin.charAt(0) === 'G') {
               window.open(
-                `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/account/${pool.config.admin}`,
+                `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/account/${pool.metadata.admin}`,
                 '_blank'
               );
             } else {
               window.open(
-                `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/contract/${pool.config.admin}`,
+                `${process.env.NEXT_PUBLIC_STELLAR_EXPERT_URL}/contract/${pool.metadata.admin}`,
                 '_blank'
               );
             }
@@ -140,13 +152,85 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
           </Box>
           <Box sx={{ padding: '6px', display: 'flex', flexDirection: 'row', height: '30px' }}>
             <Box sx={{ paddingRight: '12px', lineHeight: '100%' }}>{`Admin ${toCompactAddress(
-              pool.config.admin
+              pool.metadata.admin
             )}`}</Box>
             <Box>
               <OpenInNewIcon fontSize="inherit" />
             </Box>
           </Box>
         </OpaqueButton>
+      </Row>
+      <Row
+        sx={{
+          flex: 'flex',
+          flexDirection: viewType === ViewType.REGULAR ? 'row' : 'column',
+        }}
+      >
+        <Section
+          width={viewType === ViewType.REGULAR ? SectionSize.TILE : SectionSize.FULL}
+          height={'54px'}
+          type="alt"
+          sx={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow:
+              '0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12)',
+          }}
+        >
+          <TooltipText
+            tooltip={
+              'The total number of supply and borrow positions that can be opened in this pool.'
+            }
+            width={'auto'}
+            height={'30px'}
+            textVariant="body1"
+            sx={{ margin: '6px', justifyContent: 'center' }}
+          >
+            {'Max Positions'}
+          </TooltipText>
+          <Typography
+            variant="body1"
+            sx={{
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'row',
+            }}
+          >
+            {pool.metadata.maxPositions}
+          </Typography>
+        </Section>
+        <Section
+          width={viewType === ViewType.REGULAR ? SectionSize.TILE : SectionSize.FULL}
+          type="alt"
+          height={'54px'}
+          sx={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow:
+              '0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12)',
+          }}
+        >
+          <TooltipText
+            tooltip={'The minimum value of collateral required to borrow.'}
+            width={'auto'}
+            height={'30px'}
+            textVariant="body1"
+            sx={{ margin: '6px', justifyContent: 'center' }}
+          >
+            {'Min Collateral'}
+          </TooltipText>
+          <Typography
+            variant="body1"
+            height={'30px'}
+            sx={{
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'row',
+            }}
+          >
+            {`$${toBalance(pool.metadata.minCollateral, oracle.decimals)}`}
+          </Typography>
+        </Section>
       </Row>
       <Row>
         <LinkBox
@@ -212,7 +296,7 @@ export const MarketCardCollapse: React.FC<MarketCardCollapseProps> = ({
                 />
                 <StackedTextBox
                   name="Take Rate"
-                  text={toPercentage(pool.config.backstopRate / 1e7)}
+                  text={toPercentage(pool.metadata.backstopRate / 1e7)}
                   sx={{ width: '50%', color: theme.palette.backstop.main }}
                 />
               </Row>

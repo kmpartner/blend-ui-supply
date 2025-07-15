@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { ViewType, useSettings } from '../../contexts';
-import { usePool } from '../../hooks/api';
+import { usePool, usePoolMeta } from '../../hooks/api';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Skeleton } from '../common/Skeleton';
 import { TooltipText } from '../common/TooltipText';
@@ -9,7 +9,8 @@ import { LendMarketCard } from './LendMarketCard';
 export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
   const { viewType } = useSettings();
 
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: pool } = usePool(poolMeta);
 
   if (pool === undefined) {
     return <Skeleton />;
@@ -50,10 +51,10 @@ export const LendMarketList: React.FC<PoolComponentProps> = ({ poolId }) => {
         </Typography>
 
         <TooltipText
-          tooltip="The interest rate earned on a supplied position. This rate will fluctuate based on the market conditions and is accrued to the supplied position."
+          tooltip="The estimated compounding interest rate earned on a supplied position. This rate will fluctuate based on the market conditions, and accrues to the supplied position automatically."
           width={headerWidth}
         >
-          APR
+          APY
         </TooltipText>
 
         {viewType !== ViewType.MOBILE && (

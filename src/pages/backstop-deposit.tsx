@@ -1,4 +1,4 @@
-import { BackstopPoolEst, BackstopPoolUserEst } from '@blend-capital/blend-sdk';
+import { BackstopPoolEst } from '@blend-capital/blend-sdk';
 import { Box, Typography, useTheme } from '@mui/material';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
@@ -9,14 +9,15 @@ import { GoBackHeader } from '../components/common/GoBackHeader';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { StackedText } from '../components/common/StackedText';
+import { NotPoolBar } from '../components/pool/NotPoolBar';
 import {
   useBackstop,
   useBackstopPool,
-  useBackstopPoolUser,
   useHorizonAccount,
-  usePool,
+  usePoolMeta,
   useTokenBalance,
 } from '../hooks/api';
+import { NOT_BLEND_POOL_ERROR_MESSAGE } from '../hooks/types';
 import { toBalance, toPercentage } from '../utils/formatter';
 
 const BackstopDeposit: NextPage = () => {
@@ -26,10 +27,9 @@ const BackstopDeposit: NextPage = () => {
   const { poolId } = router.query;
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
 
-  const { data: pool } = usePool(safePoolId);
-  const { data: backstop } = useBackstop();
-  const { data: backstopPoolData } = useBackstopPool(safePoolId);
-  const { data: userBackstopPoolData } = useBackstopPoolUser(safePoolId);
+  const { data: poolMeta, error: poolError } = usePoolMeta(safePoolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: backstopPoolData } = useBackstopPool(poolMeta);
   const { data: horizonAccount } = useHorizonAccount();
   const { data: lpBalance } = useTokenBalance(
     backstop?.backstopToken?.id ?? '',
@@ -42,15 +42,14 @@ const BackstopDeposit: NextPage = () => {
       ? BackstopPoolEst.build(backstop.backstopToken, backstopPoolData.poolBalance)
       : undefined;
 
-  const backstopUserEst =
-    userBackstopPoolData !== undefined && backstop !== undefined && backstopPoolData !== undefined
-      ? BackstopPoolUserEst.build(backstop, backstopPoolData, userBackstopPoolData)
-      : undefined;
+  if (poolError?.message === NOT_BLEND_POOL_ERROR_MESSAGE) {
+    return <NotPoolBar poolId={safePoolId} />;
+  }
 
   return (
     <>
       <Row>
-        <GoBackHeader name={pool?.config?.name} />
+        <GoBackHeader poolId={safePoolId} />
       </Row>
       <Row>
         <Section width={SectionSize.FULL} sx={{ marginTop: '12px', marginBottom: '12px' }}>

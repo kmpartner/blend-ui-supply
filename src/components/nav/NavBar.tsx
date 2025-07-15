@@ -1,4 +1,6 @@
-import { Box } from '@mui/material';
+import { Version } from '@blend-capital/blend-sdk';
+import { Box, IconButton } from '@mui/material';
+import Image from 'next/image';
 import { ViewType, useSettings } from '../../contexts';
 import { useBackstop } from '../../hooks/api';
 import { Row } from '../common/Row';
@@ -11,17 +13,17 @@ import { WalletMenu } from './WalletMenu';
 export const NavBar = () => {
   const { viewType, lastPool } = useSettings();
 
-  const { data: backstop } = useBackstop();
-  const poolId = (lastPool ? lastPool : backstop?.config?.rewardZone[0]) ?? '';
+  const { data: backstop } = useBackstop(Version.V1, lastPool == undefined);
+  const poolId = (lastPool ? lastPool.id : backstop?.config?.rewardZone[0]) ?? '';
 
   return (
     <Row sx={{ height: '62px' }}>
       <SectionBase sx={{ width: '50px', margin: '6px' }}>
-        {/* <a href="https://blend.capital" target="_blank" rel="noreferrer">
+        <a href="https://blend.capital" target="_blank" rel="noreferrer">
           <IconButton sx={{ width: '79%', height: '79%', margin: '6px' }}>
             <Image src="/icons/blend_logo.svg" layout="fill" alt="Blend Logo" />
           </IconButton>
-        </a> */}
+        </a>
       </SectionBase>
       {viewType === ViewType.REGULAR && (
         <Box
@@ -34,17 +36,17 @@ export const NavBar = () => {
           }}
         >
           <Section width={SectionSize.LARGE}>
-            {/* <NavItem to={{ pathname: '/' }} title="Markets" sx={{ width: '33%' }} /> */}
+            <NavItem to={{ pathname: '/' }} title="Markets" sx={{ width: '33%' }} />
             <NavItem
-              to={{ pathname: '/dashboard', query: { poolId: poolId } }}
+              to={{ pathname: '/dashboard', query: { poolId } }}
               title="Dashboard"
               sx={{ width: '33%' }}
             />
-            {/* <NavItem
-              to={{ pathname: '/backstop', query: { poolId: poolId } }}
+            <NavItem
+              to={{ pathname: '/backstop', query: { poolId } }}
               title="Backstop"
               sx={{ width: '33%' }}
-            /> */}
+            />
           </Section>
           <Section width={SectionSize.SMALL}>
             <WalletMenu />

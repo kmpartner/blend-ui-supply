@@ -22,6 +22,7 @@ export interface TooltipTextProps extends BoxProps {
     | 'subtitle2'
     | 'body1'
     | 'body2';
+  helpIconColor?: string;
 }
 
 export const TooltipText: React.FC<TooltipTextProps> = ({
@@ -30,6 +31,7 @@ export const TooltipText: React.FC<TooltipTextProps> = ({
   children,
   textColor = 'text.secondary',
   textVariant = 'body2',
+  helpIconColor = 'text.secondary',
   sx,
 }) => {
   return (
@@ -55,10 +57,11 @@ export const TooltipText: React.FC<TooltipTextProps> = ({
           </Typography>
           <HelpOutline
             sx={{
-              color: 'text.secondary',
-              width: '15px',
+              color: helpIconColor,
+              width: '16px',
               marginLeft: '4px',
-              height: '15px',
+              height: '16px',
+              marginBottom: '2px', // account for text baseline
             }}
           />
         </Box>

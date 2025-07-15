@@ -1,18 +1,24 @@
 import {
-  BackstopClaimArgs,
-  BackstopContract,
+  addReflectorEntries,
+  BackstopClaimV1Args,
+  BackstopClaimV2Args,
+  BackstopContractV1,
+  BackstopContractV2,
   ContractErrorType,
   Network,
   parseError,
   PoolBackstopActionArgs,
   PoolClaimArgs,
-  PoolContract,
+  PoolContractV2,
   Positions,
   SubmitArgs,
+  Version,
 } from '@blend-capital/blend-sdk';
 import {
   AlbedoModule,
   FreighterModule,
+  HanaModule,
+  HotWalletModule,
   ISupportedWallet,
   LobstrModule,
   StellarWalletsKit,
@@ -28,7 +34,6 @@ import {
 import { getNetworkDetails as getFreighterNetwork } from '@stellar/freighter-api';
 import {
   Asset,
-  BASE_FEE,
   Networks,
   Operation,
   rpc,
@@ -39,6 +44,7 @@ import {
 import React, { useContext, useEffect, useState } from 'react';
 import { useLocalStorageState } from '../hooks';
 import { useQueryClientCacheCleaner } from '../hooks/api';
+import { PoolMeta } from '../hooks/types';
 import { CometClient, CometLiquidityArgs, CometSingleSidedDepositArgs } from '../utils/comet';
 import { useSettings } from './settings';
 
@@ -50,6 +56,7 @@ export interface IWalletContext {
   lastTxFailure: string | undefined;
   txType: TxType;
   walletId: string | undefined;
+  txInclusionFee: InclusionFee;
 
   isLoading: boolean;
   connect: (handleSuccess: (success: boolean) => void) => Promise<void>;
@@ -57,33 +64,38 @@ export interface IWalletContext {
   clearLastTx: () => void;
   restore: (sim: rpc.Api.SimulateTransactionRestoreResponse) => Promise<void>;
   poolSubmit: (
-    poolId: string,
+    poolMeta: PoolMeta,
     submitArgs: SubmitArgs,
     sim: boolean
   ) => Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   poolClaim: (
-    poolId: string,
+    poolMeta: PoolMeta,
     claimArgs: PoolClaimArgs,
     sim: boolean
   ) => Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   backstopDeposit(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   backstopWithdraw(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   backstopQueueWithdrawal(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   backstopDequeueWithdrawal(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   backstopClaim(
-    args: BackstopClaimArgs,
+    poolMeta: PoolMeta,
+    args: BackstopClaimV1Args | BackstopClaimV2Args,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined>;
   cometSingleSidedDeposit(
@@ -104,6 +116,7 @@ export interface IWalletContext {
   faucet(): Promise<undefined>;
   createTrustlines(asset: Asset[]): Promise<void>;
   getNetworkDetails(): Promise<Network & { horizonUrl: string }>;
+  setTxInclusionFee: (inclusionFee: InclusionFee) => void;
 }
 
 export enum TxStatus {
@@ -122,6 +135,11 @@ export enum TxType {
   PREREQ,
 }
 
+export interface InclusionFee {
+  type: 'Low' | 'Medium' | 'High';
+  fee: string;
+}
+
 const walletKit: StellarWalletsKit = new StellarWalletsKit({
   network: (process.env.NEXT_PUBLIC_PASSPHRASE ?? WalletNetwork.TESTNET) as WalletNetwork,
   selectedWalletId: XBULL_ID,
@@ -130,6 +148,7 @@ const walletKit: StellarWalletsKit = new StellarWalletsKit({
     new FreighterModule(),
     new LobstrModule(),
     new AlbedoModule(),
+    new HanaModule(),
     new LedgerModule(),
     new WalletConnectModule({
       url: process.env.NEXT_PUBLIC_WALLET_CONNECT_URL ?? '',
@@ -142,6 +161,7 @@ const walletKit: StellarWalletsKit = new StellarWalletsKit({
       ],
       network: (process.env.NEXT_PUBLIC_PASSPHRASE ?? WalletNetwork.TESTNET) as WalletNetwork,
     }),
+    new HotWalletModule(),
   ],
 });
 
@@ -162,6 +182,11 @@ export const WalletProvider = ({ children = null as any }) => {
   const [txHash, setTxHash] = useState<string | undefined>(undefined);
   const [txFailure, setTxFailure] = useState<string | undefined>(undefined);
   const [txType, setTxType] = useState<TxType>(TxType.CONTRACT);
+  const [txInclusionFee, setTxInclusionFee] = useState<InclusionFee>({
+    type: 'Medium',
+    fee: '2000',
+  });
+
   // wallet state
   const [walletAddress, setWalletAddress] = useState<string>('');
 
@@ -221,8 +246,8 @@ export const WalletProvider = ({ children = null as any }) => {
       await walletKit.openModal({
         onWalletSelected: async (option: ISupportedWallet) => {
           walletKit.setWallet(option.id);
-          setAutoConnect(option.id);
           let result = await handleSetWalletAddress();
+          setAutoConnect(option.id);
           handleSuccess(result);
         },
       });
@@ -275,7 +300,7 @@ export const WalletProvider = ({ children = null as any }) => {
   async function restore(sim: rpc.Api.SimulateTransactionRestoreResponse): Promise<void> {
     let account = await stellarRpc.getAccount(walletAddress);
     setTxStatus(TxStatus.BUILDING);
-    let fee = parseInt(sim.restorePreamble.minResourceFee) + parseInt(BASE_FEE);
+    let fee = parseInt(sim.restorePreamble.minResourceFee) + parseInt(txInclusionFee.fee);
     let restore_tx = new TransactionBuilder(account, { fee: fee.toString() })
       .setNetworkPassphrase(network.passphrase)
       .setTimeout(0)
@@ -304,10 +329,20 @@ export const WalletProvider = ({ children = null as any }) => {
       return false;
     }
 
+    curr_time = Date.now();
     let get_tx_response = await stellarRpc.getTransaction(send_tx_response.hash);
-    while (get_tx_response.status === 'NOT_FOUND') {
+    while (get_tx_response.status === 'NOT_FOUND' && Date.now() - curr_time < 30000) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       get_tx_response = await stellarRpc.getTransaction(send_tx_response.hash);
+    }
+
+    if (get_tx_response.status === 'NOT_FOUND') {
+      console.error('Unable to validate transaction success: ', get_tx_response.txHash);
+      setFailureMessage(
+        'The transaction could have been accepted by the network, but we were unable to verify.'
+      );
+      setTxStatus(TxStatus.FAIL);
+      return false;
     }
 
     let hash = transaction.hash().toString('hex');
@@ -335,8 +370,8 @@ export const WalletProvider = ({ children = null as any }) => {
       const account = await stellarRpc.getAccount(walletAddress);
       const tx_builder = new TransactionBuilder(account, {
         networkPassphrase: network.passphrase,
-        fee: BASE_FEE,
-        timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 5 * 60 * 1000 },
+        fee: txInclusionFee.fee,
+        timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 2 * 60 * 1000 },
       }).addOperation(operation);
       const transaction = tx_builder.build();
       const simulation = await stellarRpc.simulateTransaction(transaction);
@@ -348,18 +383,19 @@ export const WalletProvider = ({ children = null as any }) => {
     }
   }
 
-  async function invokeSorobanOperation<T>(operation: xdr.Operation, poolId?: string | undefined) {
+  async function invokeSorobanOperation<T>(operation: xdr.Operation) {
     try {
       const account = await stellarRpc.getAccount(walletAddress);
       const tx_builder = new TransactionBuilder(account, {
         networkPassphrase: network.passphrase,
-        fee: BASE_FEE,
-        timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 5 * 60 * 1000 },
+        fee: txInclusionFee.fee,
+        timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 2 * 60 * 1000 },
       }).addOperation(operation);
       const transaction = tx_builder.build();
       const simResponse = await simulateOperation(operation);
       const assembled_tx = rpc.assembleTransaction(transaction, simResponse).build();
-      const signedTx = await sign(assembled_tx.toXDR());
+      const extended_tx = addReflectorEntries(assembled_tx.toXDR());
+      const signedTx = await sign(extended_tx);
       const tx = new Transaction(signedTx, network.passphrase);
       await sendTransaction(tx);
     } catch (e: any) {
@@ -380,48 +416,54 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Submit a request to the pool
-   * @param poolId - The contract address of the pool
+   * @param poolMeta - The metadata for the pool
    * @param submitArgs - The "submit" function args
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function poolSubmit(
-    poolId: string,
+    poolMeta: PoolMeta,
     submitArgs: SubmitArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
     if (connected) {
-      const pool = new PoolContract(poolId);
+      const pool =
+        poolMeta.version === Version.V2
+          ? new PoolContractV2(poolMeta.id)
+          : new PoolContractV2(poolMeta.id);
       const operation = xdr.Operation.fromXDR(pool.submit(submitArgs), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
-      await invokeSorobanOperation<Positions>(operation, poolId);
-      cleanPoolCache(poolId);
+      await invokeSorobanOperation<Positions>(operation);
+      cleanPoolCache(poolMeta.id);
       cleanWalletCache();
     }
   }
 
   /**
    * Claim emissions from the pool
-   * @param poolId - The contract address of the pool
+   * @param poolMeta - The metadata for the pool
    * @param claimArgs - The "claim" function args
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function poolClaim(
-    poolId: string,
+    poolMeta: PoolMeta,
     claimArgs: PoolClaimArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
     if (connected) {
-      const pool = new PoolContract(poolId);
+      const pool =
+        poolMeta.version === Version.V2
+          ? new PoolContractV2(poolMeta.id)
+          : new PoolContractV2(poolMeta.id);
       const operation = xdr.Operation.fromXDR(pool.claim(claimArgs), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
-      await invokeSorobanOperation(operation, poolId);
-      cleanPoolCache(poolId);
+      await invokeSorobanOperation(operation);
+      cleanPoolCache(poolMeta.id);
       cleanWalletCache();
     }
   }
@@ -430,17 +472,22 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Execute an deposit against the backstop
+   * @param poolMeta - The metadata for the pool
    * @param args - The args of the deposit
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function backstopDeposit(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
-    if (connected && process.env.NEXT_PUBLIC_BACKSTOP) {
-      let backstop = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP);
-      let operation = xdr.Operation.fromXDR(backstop.deposit(args), 'base64');
+    if (connected) {
+      const backstop =
+        poolMeta.version === Version.V2
+          ? new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '')
+          : new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+      const operation = xdr.Operation.fromXDR(backstop.deposit(args), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
@@ -456,17 +503,22 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Execute an withdraw against the backstop
+   * @param poolMeta - The metadata for the pool
    * @param args - The args of the withdraw
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function backstopWithdraw(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
-    if (connected && process.env.NEXT_PUBLIC_BACKSTOP) {
-      let backstop = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP);
-      let operation = xdr.Operation.fromXDR(backstop.withdraw(args), 'base64');
+    if (connected) {
+      const backstop =
+        poolMeta.version === Version.V2
+          ? new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '')
+          : new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+      const operation = xdr.Operation.fromXDR(backstop.withdraw(args), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
@@ -482,17 +534,22 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Execute an queue withdrawal against the backstop
+   * @param poolMeta - The metadata for the pool
    * @param args - The args of the queue withdrawal
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function backstopQueueWithdrawal(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
-    if (connected && process.env.NEXT_PUBLIC_BACKSTOP) {
-      let backstop = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP);
-      let operation = xdr.Operation.fromXDR(backstop.queueWithdrawal(args), 'base64');
+    if (connected) {
+      const backstop =
+        poolMeta.version === Version.V2
+          ? new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '')
+          : new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+      const operation = xdr.Operation.fromXDR(backstop.queueWithdrawal(args), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
@@ -507,17 +564,22 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Execute an dequeue withdrawal against the backstop
+   * @param poolMeta - The metadata for the pool
    * @param args - The args of the queue withdrawal
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The Positions, or undefined
    */
   async function backstopDequeueWithdrawal(
+    poolMeta: PoolMeta,
     args: PoolBackstopActionArgs,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
-    if (connected && process.env.NEXT_PUBLIC_BACKSTOP) {
-      let backstop = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP);
-      let operation = xdr.Operation.fromXDR(backstop.dequeueWithdrawal(args), 'base64');
+    if (connected) {
+      const backstop =
+        poolMeta.version === Version.V2
+          ? new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '')
+          : new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+      const operation = xdr.Operation.fromXDR(backstop.dequeueWithdrawal(args), 'base64');
       if (sim) {
         return await simulateOperation(operation);
       }
@@ -532,21 +594,31 @@ export const WalletProvider = ({ children = null as any }) => {
 
   /**
    * Claim emissions from the backstop
+   * @param poolMeta - The metadata for the pool
    * @param claimArgs - The "claim" function args
    * @param sim - "true" if simulating the transaction, "false" if submitting
    * @returns The claimed amount
    */
   async function backstopClaim(
-    claimArgs: BackstopClaimArgs,
+    poolMeta: PoolMeta,
+    claimArgs: BackstopClaimV1Args | BackstopClaimV2Args,
     sim: boolean
   ): Promise<rpc.Api.SimulateTransactionResponse | undefined> {
-    if (connected && process.env.NEXT_PUBLIC_BACKSTOP) {
-      let backstop = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP);
-      let operation = xdr.Operation.fromXDR(backstop.claim(claimArgs), 'base64');
-      if (sim) {
-        return await simulateOperation(operation);
+    if (connected) {
+      let operation = '';
+      if (poolMeta.version === Version.V2) {
+        operation = new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '').claim(
+          claimArgs as BackstopClaimV2Args
+        );
+      } else {
+        operation = new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '').claim(
+          claimArgs as BackstopClaimV1Args
+        );
       }
-      await invokeSorobanOperation(operation);
+      if (sim) {
+        return await simulateOperation(xdr.Operation.fromXDR(operation, 'base64'));
+      }
+      await invokeSorobanOperation(xdr.Operation.fromXDR(operation, 'base64'));
       if (typeof claimArgs.pool_addresses[0] === 'string') {
         cleanBackstopPoolCache(claimArgs.pool_addresses[0]);
       } else {
@@ -572,7 +644,7 @@ export const WalletProvider = ({ children = null as any }) => {
     try {
       if (connected) {
         let cometClient = new CometClient(cometPoolId);
-        let operation = cometClient.depositTokenInGetLPOut(args);
+        const operation = cometClient.depositTokenInGetLPOut(args);
         if (sim) {
           return await simulateOperation(operation);
         }
@@ -593,7 +665,7 @@ export const WalletProvider = ({ children = null as any }) => {
     try {
       if (connected) {
         let cometClient = new CometClient(cometPoolId);
-        let operation = cometClient.join(args);
+        const operation = cometClient.join(args);
         if (sim) {
           return await simulateOperation(operation);
         }
@@ -614,7 +686,7 @@ export const WalletProvider = ({ children = null as any }) => {
     try {
       if (connected) {
         let cometClient = new CometClient(cometPoolId);
-        let operation = cometClient.exit(args);
+        const operation = cometClient.exit(args);
         if (sim) {
           return await simulateOperation(operation);
         }
@@ -659,8 +731,8 @@ export const WalletProvider = ({ children = null as any }) => {
         const account = await stellarRpc.getAccount(walletAddress);
         const tx_builder = new TransactionBuilder(account, {
           networkPassphrase: network.passphrase,
-          fee: BASE_FEE,
-          timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 5 * 60 * 1000 },
+          fee: txInclusionFee.fee,
+          timebounds: { minTime: 0, maxTime: Math.floor(Date.now() / 1000) + 2 * 60 * 1000 },
         });
         for (let asset of assets) {
           const trustlineOperation = Operation.changeTrust({
@@ -710,6 +782,7 @@ export const WalletProvider = ({ children = null as any }) => {
         txType,
         walletId: autoConnect,
         isLoading: loading,
+        txInclusionFee,
         connect,
         disconnect,
         clearLastTx,
@@ -727,6 +800,7 @@ export const WalletProvider = ({ children = null as any }) => {
         faucet,
         createTrustlines,
         getNetworkDetails,
+        setTxInclusionFee,
       }}
     >
       {children}

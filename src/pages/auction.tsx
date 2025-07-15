@@ -1,4 +1,11 @@
-import { getAuctionsfromEvents } from '@blend-capital/blend-sdk';
+import {
+  Auctions,
+  getAuctionsfromV1Events,
+  getAuctionsfromV2Events,
+  PoolV1Event,
+  PoolV2Event,
+  Version,
+} from '@blend-capital/blend-sdk';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Box, Typography, useTheme } from '@mui/material';
@@ -11,6 +18,7 @@ import { Divider } from '../components/common/Divider';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { Skeleton } from '../components/common/Skeleton';
+import { NotPoolBar } from '../components/pool/NotPoolBar';
 import { PoolExploreBar } from '../components/pool/PoolExploreBar';
 import { TxStatus, useWallet } from '../contexts/wallet';
 import {
@@ -18,7 +26,9 @@ import {
   useAuctionEventsShortQuery,
   useBackstop,
   usePool,
+  usePoolMeta,
 } from '../hooks/api';
+import { NOT_BLEND_POOL_ERROR_MESSAGE } from '../hooks/types';
 
 const Auction: NextPage = () => {
   const theme = useTheme();
@@ -26,31 +36,32 @@ const Auction: NextPage = () => {
   const { poolId } = router.query;
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
   const { txStatus } = useWallet();
-  const { data: pool, isError: isPoolLoadingError } = usePool(safePoolId, safePoolId !== '');
-  const { data: backstop } = useBackstop();
-  let { data: pastEvents, isError: isLongEventsError } = useAuctionEventsLongQuery(
-    safePoolId,
-    safePoolId !== ''
-  );
+
+  const { data: poolMeta, error: poolError } = usePoolMeta(safePoolId);
+  const { data: pool, isError: isPoolLoadingError } = usePool(poolMeta);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  let { data: pastEvents, isError: isLongEventsError } = useAuctionEventsLongQuery(poolMeta);
   const {
     data: recentEvents,
     refetch: refetchShortEvents,
     isError: isShortEventsError,
   } = useAuctionEventsShortQuery(
-    safePoolId,
+    poolMeta,
     pastEvents?.latestLedger ?? 0,
-    safePoolId !== '' && pastEvents !== undefined && pastEvents.latestLedger > 0
+    pastEvents !== undefined && pastEvents.latestLedger > 0
   );
 
-  const allEvents =
-    pastEvents !== undefined && recentEvents !== undefined
-      ? pastEvents.events.concat(recentEvents?.events)
-      : [];
+  const allEvents = [...(pastEvents?.events ?? []), ...(recentEvents?.events ?? [])];
   // ensure events are sorted in ascending order by ledger
   allEvents.sort((a, b) => a.ledger - b.ledger);
-  const auctions =
-    pool && backstop ? getAuctionsfromEvents(allEvents, backstop.id) : { filled: [], ongoing: [] };
-
+  let auctions: Auctions = { filled: [], ongoing: [] };
+  if (pool && backstop) {
+    if (poolMeta?.version === Version.V1) {
+      auctions = getAuctionsfromV1Events(allEvents as PoolV1Event[], backstop.id);
+    } else {
+      auctions = getAuctionsfromV2Events(allEvents as PoolV2Event[]);
+    }
+  }
   const curLedger = recentEvents?.latestLedger ?? pastEvents?.latestLedger ?? 0;
 
   useEffect(() => {
@@ -62,6 +73,10 @@ const Auction: NextPage = () => {
   const hasData = pool && backstop && pastEvents !== undefined;
   const hasAuctions = auctions.filled.length > 0 || auctions.ongoing.length > 0;
   const hasError = isPoolLoadingError || isLongEventsError || isShortEventsError;
+
+  if (poolError?.message === NOT_BLEND_POOL_ERROR_MESSAGE) {
+    return <NotPoolBar poolId={safePoolId} />;
+  }
 
   return (
     <>
