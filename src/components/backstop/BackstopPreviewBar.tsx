@@ -2,7 +2,13 @@ import { BackstopPoolEst, BackstopPoolUserEst } from '@blend-capital/blend-sdk';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Box, useTheme } from '@mui/material';
 import { useSettings, ViewType } from '../../contexts';
-import { useBackstop, useBackstopPool, useBackstopPoolUser, usePool } from '../../hooks/api';
+import {
+  useBackstop,
+  useBackstopPool,
+  useBackstopPoolUser,
+  usePool,
+  usePoolMeta,
+} from '../../hooks/api';
 import { toBalance } from '../../utils/formatter';
 import { CustomButton } from '../common/CustomButton';
 import { Icon } from '../common/Icon';
@@ -17,10 +23,11 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
   const { viewType } = useSettings();
   const theme = useTheme();
 
-  const { data: pool } = usePool(poolId);
-  const { data: backstop } = useBackstop();
-  const { data: backstopPoolData } = useBackstopPool(poolId);
-  const { data: backstopUserData } = useBackstopPoolUser(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: pool } = usePool(poolMeta);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: backstopPoolData } = useBackstopPool(poolMeta);
+  const { data: backstopUserData } = useBackstopPoolUser(poolMeta);
 
   if (backstop === undefined || backstopPoolData == undefined) {
     return <Skeleton />;
@@ -60,20 +67,20 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
             alignItems: 'center',
             backgroundColor: theme.palette.background.default,
             borderRadius: '5px',
+            width: '110px',
           }}
         >
-          <PoolStatusBox titleColor="inherit" type="large" status={pool?.config?.status} />
+          <PoolStatusBox titleColor="inherit" type="large" status={pool?.metadata?.status} />
         </Box>
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginLeft: 'auto',
-            marginRight: '23px',
+            marginLeft: '50px',
           }}
         >
-          <StackedText
+          {/* <StackedText
             title="Total Backstop Size"
             titleColor="inherit"
             text={`$${toBalance(backstopPoolEst.totalSpotValue)}`}
@@ -85,10 +92,10 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
             src={'/icons/dashboard/bkstp_size.svg'}
             alt={`backstop size icon`}
             sx={{ marginLeft: '12px' }}
-          />
+          /> */}
         </Box>
       </Box>
-      <LinkBox
+      {/* <LinkBox
         sx={{ width: viewTypeRegular ? '45%' : '100%', display: 'flex' }}
         to={{ pathname: '/backstop', query: { poolId: poolId } }}
       >
@@ -121,7 +128,7 @@ export const BackstopPreviewBar: React.FC<PoolComponentProps> = ({ poolId }) => 
           </Box>
           <ArrowForwardIcon fontSize="inherit" />
         </CustomButton>
-      </LinkBox>
+      </LinkBox> */}
     </Row>
   );
 };

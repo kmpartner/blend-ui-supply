@@ -1,5 +1,8 @@
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useTheme } from '@mui/material';
 import { useSettings, ViewType } from '../../contexts';
+import { LinkBox } from '../common/LinkBox';
+import { OpaqueButton } from '../common/OpaqueButton';
 import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';

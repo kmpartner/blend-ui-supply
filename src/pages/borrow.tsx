@@ -4,14 +4,16 @@ import { Box, Link, Typography, useTheme } from '@mui/material';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { BorrowAnvil } from '../components/borrow/BorrowAnvil';
-import { AprDisplay } from '../components/common/AprDisplay';
 import { GoBackHeader } from '../components/common/GoBackHeader';
+import { RateDisplay } from '../components/common/RateDisplay';
 import { ReserveDetailsBar } from '../components/common/ReserveDetailsBar';
 import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { StackedText } from '../components/common/StackedText';
-import { useBackstop, usePool, usePoolOracle } from '../hooks/api';
-import { toBalance, toPercentage } from '../utils/formatter';
+import { NotPoolBar } from '../components/pool/NotPoolBar';
+import { useBackstop, usePool, usePoolMeta, usePoolOracle, useTokenMetadata } from '../hooks/api';
+import { NOT_BLEND_POOL_ERROR_MESSAGE } from '../hooks/types';
+import { toBalance, toCompactAddress, toPercentage } from '../utils/formatter';
 import { estimateEmissionsApr } from '../utils/math';
 import { getTokenLinkFromReserve } from '../utils/token';
 
@@ -23,28 +25,41 @@ const Borrow: NextPage = () => {
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
   const safeAssetId = typeof assetId == 'string' && /^[0-9A-Z]{56}$/.test(assetId) ? assetId : '';
 
-  const { data: pool } = usePool(safePoolId);
+  const { data: poolMeta, error: poolError } = usePoolMeta(safePoolId);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
-  const { data: backstop } = useBackstop();
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: tokenMetadata } = useTokenMetadata(safeAssetId);
+
   const reserve = pool?.reserves.get(safeAssetId);
+  const tokenSymbol = tokenMetadata?.symbol ?? toCompactAddress(safeAssetId);
 
   const maxUtilFloat = reserve ? FixedMath.toFloat(BigInt(reserve.config.max_util), 7) : 1;
   const totalSupplied = reserve ? reserve.totalSupplyFloat() : 0;
   const availableToBorrow = reserve
-    ? totalSupplied * maxUtilFloat - reserve.totalLiabilitiesFloat()
+    ? Math.max(totalSupplied * maxUtilFloat - reserve.totalLiabilitiesFloat(), 0)
     : 0;
-
   const oraclePrice = reserve ? poolOracle?.getPriceFloat(reserve.assetId) : 0;
-  const emissionsPerAsset = reserve !== undefined ? reserve.emissionsPerYearPerBorrowedAsset() : 0;
+  const emissionsPerAsset =
+    reserve && reserve.borrowEmissions !== undefined
+      ? reserve.borrowEmissions.emissionsPerYearPerToken(
+          reserve.totalLiabilities(),
+          reserve.config.decimals
+        )
+      : 0;
   const emissionApr =
     backstop && emissionsPerAsset > 0 && oraclePrice
       ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
       : undefined;
 
+  if (poolError?.message === NOT_BLEND_POOL_ERROR_MESSAGE) {
+    return <NotPoolBar poolId={safePoolId} />;
+  }
+
   return (
     <>
       <Row>
-        <GoBackHeader name={pool?.config.name} />
+        <GoBackHeader poolId={safePoolId} />
       </Row>
       <ReserveDetailsBar action="borrow" poolId={safePoolId} activeReserveId={safeAssetId} />
       <Row>
@@ -86,7 +101,7 @@ const Borrow: NextPage = () => {
                 }}
               >
                 <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
-                  {reserve?.tokenMetadata?.symbol ?? ''}
+                  {tokenSymbol}
                 </Typography>
                 <OpenInNewIcon fontSize="inherit" />
               </Link>
@@ -100,15 +115,15 @@ const Borrow: NextPage = () => {
           style={{ display: 'flex', justifyContent: 'space-between' }}
         >
           <StackedText
-            title="Borrow APR"
+            title="Borrow APY"
             text={
               reserve ? (
-                <AprDisplay
-                  assetSymbol={reserve.tokenMetadata.symbol}
-                  assetApr={reserve.borrowApr}
+                <RateDisplay
+                  assetSymbol={tokenSymbol}
+                  assetRate={reserve.estBorrowApy}
                   emissionSymbol={'BLND'}
                   emissionApr={emissionApr}
-                  isSupply={false}
+                  rateType={'charged'}
                   direction={'horizontal'}
                 />
               ) : (
@@ -116,7 +131,7 @@ const Borrow: NextPage = () => {
               )
             }
             sx={{ padding: '6px' }}
-            tooltip="The interest rate charged for a borrowed position. This rate will fluctuate based on the market conditions and is accrued to the borrowed position."
+            tooltip="The estimated compounding interest rate charged for a borrowed position. This rate will fluctuate based on the market conditions, and accrues to the borrowed position automatically."
           ></StackedText>
         </Section>
         <Section width={SectionSize.THIRD}>

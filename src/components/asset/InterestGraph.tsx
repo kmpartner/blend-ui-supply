@@ -10,9 +10,10 @@ import { ReserveComponentProps } from '../common/ReserveComponentProps';
 
 interface InterestGraphProps extends ReserveComponentProps {
   reserve: Reserve;
+  backstopTakeRate: bigint;
 }
 
-export const InterestGraph: React.FC<InterestGraphProps> = ({ poolId, assetId, reserve }) => {
+export const InterestGraph: React.FC<InterestGraphProps> = ({ reserve, backstopTakeRate }) => {
   const theme = useTheme();
 
   const [showMore, setShowMore] = useState(false);
@@ -20,12 +21,14 @@ export const InterestGraph: React.FC<InterestGraphProps> = ({ poolId, assetId, r
   const targetUtil = reserve.config.util / 1e7;
   const maxUtil = reserve.config.max_util / 1e7;
   const currentUtil = reserve.getUtilizationFloat();
-  let defaultIRModifierReserve = structuredClone(reserve);
-  defaultIRModifierReserve.data.interestRateModifier = FixedMath.toFixed(1, 9);
+  const currentIRModFloat = FixedMath.toFloat(
+    reserve.data.interestRateModifier,
+    reserve.irmodDecimals
+  );
+
   let dataPoints: { util: number; apr: number }[] = [];
   let defaultDataPoints: { util: number; apr: number }[] = [];
   let utilizationRates = [];
-
   for (let i = 0; i <= (showMore ? 100 : maxUtil * 100); i++) {
     utilizationRates.push(i / 100);
   }
@@ -34,13 +37,13 @@ export const InterestGraph: React.FC<InterestGraphProps> = ({ poolId, assetId, r
   dataPoints = [
     ...utilizationRates.map((utilRate) => ({
       util: utilRate,
-      apr: FixedMath.toFloat(estimateInterestRate(utilRate, reserve), 7),
+      apr: estimateInterestRate(utilRate, currentIRModFloat, reserve, backstopTakeRate),
     })),
   ];
   defaultDataPoints = [
     ...utilizationRates.map((utilRate) => ({
       util: utilRate,
-      apr: FixedMath.toFloat(estimateInterestRate(utilRate, defaultIRModifierReserve), 7),
+      apr: estimateInterestRate(utilRate, 1, reserve, backstopTakeRate),
     })),
   ];
   const maxAPR =
@@ -116,10 +119,7 @@ export const InterestGraph: React.FC<InterestGraphProps> = ({ poolId, assetId, r
           {
             id: 'CurrentAPR',
             data: dataPoints.map((element) => element.apr),
-            label: `Current APR (Rate Modifier ${FixedMath.toFloat(
-              reserve.data.interestRateModifier,
-              9
-            ).toFixed(2)})`,
+            label: `Current APR (Rate Modifier ${currentIRModFloat.toFixed(2)})`,
             valueFormatter: (element) => {
               return toPercentage(element!, 2);
             },

@@ -1,6 +1,6 @@
 import {
   parseResult,
-  PoolContract,
+  PoolContractV1,
   PoolUser,
   Positions,
   PositionsEstimate,
@@ -10,12 +10,19 @@ import {
 import { Box, Typography, useTheme } from '@mui/material';
 import { rpc } from '@stellar/stellar-sdk';
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSettings, ViewType } from '../../contexts';
 import { TxStatus, TxType, useWallet } from '../../contexts/wallet';
-import { useHorizonAccount, usePool, usePoolOracle, usePoolUser } from '../../hooks/api';
+import {
+  useHorizonAccount,
+  usePool,
+  usePoolMeta,
+  usePoolOracle,
+  usePoolUser,
+  useTokenMetadata,
+} from '../../hooks/api';
 import { RPC_DEBOUNCE_DELAY, useDebouncedState } from '../../hooks/debounce';
-import { toBalance, toPercentage } from '../../utils/formatter';
+import { toBalance, toCompactAddress, toPercentage } from '../../utils/formatter';
 import { requiresTrustline } from '../../utils/horizon';
 import { scaleInputToBigInt } from '../../utils/scval';
 import { getErrorFromSim, SubmitError } from '../../utils/txSim';
@@ -27,24 +34,39 @@ import { ReserveComponentProps } from '../common/ReserveComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
 import { Skeleton } from '../common/Skeleton';
+import { TxFeeSelector } from '../common/TxFeeSelector';
 import { TxOverview } from '../common/TxOverview';
 import { toUSDBalance } from '../common/USDBalance';
 import { Value } from '../common/Value';
 import { ValueChange } from '../common/ValueChange';
 
-export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId }) => {
+export interface WithdrawAnvilProps extends ReserveComponentProps {
+  isCollateral: boolean;
+}
+
+export const WithdrawAnvil: React.FC<WithdrawAnvilProps> = ({ poolId, assetId, isCollateral }) => {
   const theme = useTheme();
   const { viewType } = useSettings();
 
-  const { connected, walletAddress, poolSubmit, txStatus, txType, createTrustlines, isLoading } =
-    useWallet();
+  const {
+    connected,
+    walletAddress,
+    poolSubmit,
+    txStatus,
+    txType,
+    createTrustlines,
+    isLoading,
+    txInclusionFee,
+  } = useWallet();
 
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
   const { data: poolUser } = usePoolUser(pool);
+  const { data: tokenMetadata } = useTokenMetadata(assetId);
   const reserve = pool?.reserves.get(assetId);
   const decimals = reserve?.config.decimals ?? 7;
-  const symbol = reserve?.tokenMetadata.symbol ?? 'token';
+  const symbol = tokenMetadata?.symbol ?? toCompactAddress(assetId);
   const { data: horizonAccount } = useHorizonAccount();
 
   const [toWithdrawSubmit, setToWithdrawSubmit] = useState<string | undefined>(undefined);
@@ -59,7 +81,7 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
   }
 
   const handleSubmitTransaction = async (sim: boolean) => {
-    if (toWithdrawSubmit && connected && reserve) {
+    if (toWithdrawSubmit && connected && poolMeta && reserve) {
       let submitArgs: SubmitArgs = {
         from: walletAddress,
         to: walletAddress,
@@ -67,12 +89,12 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
         requests: [
           {
             amount: scaleInputToBigInt(toWithdrawSubmit, decimals),
-            request_type: RequestType.WithdrawCollateral,
+            request_type: isCollateral ? RequestType.WithdrawCollateral : RequestType.Withdraw,
             address: reserve.assetId,
           },
         ],
       };
-      return await poolSubmit(poolId, submitArgs, sim);
+      return await poolSubmit(poolMeta, submitArgs, sim);
     }
   };
 
@@ -83,15 +105,19 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
     if (response) {
       setSimResponse(response);
       if (rpc.Api.isSimulationSuccess(response)) {
-        setParsedSimResult(parseResult(response, PoolContract.parsers.submit));
+        setParsedSimResult(parseResult(response, PoolContractV1.parsers.submit));
       }
     }
     setLoadingEstimate(false);
   });
 
+  useEffect(() => {
+    setToWithdraw('');
+  }, [isCollateral]);
+
   async function handleAddAssetTrustline() {
-    if (connected && reserve?.tokenMetadata?.asset) {
-      const reserveAsset = reserve?.tokenMetadata?.asset;
+    if (connected && tokenMetadata?.asset) {
+      const reserveAsset = tokenMetadata?.asset;
       await createTrustlines([reserveAsset]);
     }
   }
@@ -102,13 +128,13 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
       palette={theme.palette.warning}
       sx={{ padding: '6px 24px', margin: '12px auto' }}
     >
-      Add {reserve?.tokenMetadata.asset?.code} Trustline
+      Add {symbol} Trustline
     </OpaqueButton>
   );
 
   const { isSubmitDisabled, isMaxDisabled, reason, disabledType, extraContent, isError } =
     useMemo(() => {
-      const hasTokenTrustline = !requiresTrustline(horizonAccount, reserve?.tokenMetadata?.asset);
+      const hasTokenTrustline = !requiresTrustline(horizonAccount, tokenMetadata?.asset);
       if (!hasTokenTrustline) {
         let submitError: SubmitError = {
           isSubmitDisabled: true,
@@ -153,7 +179,9 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
 
   const handleWithdrawAmountChange = (withdrawInput: string) => {
     if (reserve && poolUser) {
-      let curSupplied = poolUser.getCollateralFloat(reserve);
+      let curSupplied = isCollateral
+        ? poolUser.getCollateralFloat(reserve)
+        : poolUser.getSupplyFloat(reserve);
       let realWithdraw = withdrawInput;
       let num_withdraw = Number(withdrawInput);
       if (num_withdraw > curSupplied) {
@@ -170,8 +198,10 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
 
   const handleWithdrawMax = () => {
     if (reserve && poolUser) {
-      let curSupplied = poolUser.getCollateralFloat(reserve);
-      if (poolUser.positions.liabilities.size === 0) {
+      let curSupplied = isCollateral
+        ? poolUser.getCollateralFloat(reserve)
+        : poolUser.getSupplyFloat(reserve);
+      if (poolUser.positions.liabilities.size === 0 || isCollateral === false) {
         handleWithdrawAmountChange((curSupplied * 1.005).toFixed(decimals));
       } else if (curPositionsEstimate && assetToBase) {
         let to_bounded_hf =
@@ -210,11 +240,11 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
               height: '35px',
               display: 'flex',
               flexDirection: 'row',
-              marginBottom: '12px',
+              marginBottom: '6px',
             }}
           >
             <InputBar
-              symbol={reserve?.tokenMetadata?.symbol ?? ''}
+              symbol={symbol}
               value={toWithdraw}
               onValueChange={(v) => {
                 handleWithdrawAmountChange(v);
@@ -241,21 +271,31 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
               </OpaqueButton>
             )}
           </Box>
-          <Box sx={{ marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Box
+            sx={{
+              marginLeft: '12px',
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
             <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
               {toUSDBalance(assetToBase, Number(toWithdraw ?? 0))}
             </Typography>
-            {viewType === ViewType.MOBILE && (
-              <OpaqueButton
-                onClick={() => handleSubmitTransaction(false)}
-                palette={theme.palette.lend}
-                sx={{ minWidth: '108px', padding: '6px' }}
-                disabled={isSubmitDisabled}
-              >
-                Withdraw
-              </OpaqueButton>
-            )}
+            <TxFeeSelector />
           </Box>
+          {viewType === ViewType.MOBILE && (
+            <OpaqueButton
+              onClick={() => handleSubmitTransaction(false)}
+              palette={theme.palette.lend}
+              sx={{ minWidth: '108px', padding: '6px', width: '100%', marginTop: '6px' }}
+              disabled={isSubmitDisabled}
+            >
+              Withdraw
+            </OpaqueButton>
+          )}
         </Box>
         {!isError && (
           <TxOverview>
@@ -269,14 +309,22 @@ export const WithdrawAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId
                   </>
                 }
                 value={`${toBalance(
-                  BigInt((simResponse as any)?.minResourceFee ?? 0),
+                  BigInt((simResponse as any)?.minResourceFee ?? 0) + BigInt(txInclusionFee.fee),
                   decimals
                 )} XLM`}
               />
               <ValueChange
                 title="Your total supplied"
-                curValue={`${toBalance(poolUser?.getCollateralFloat(reserve))} ${symbol}`}
-                newValue={`${toBalance(newPoolUser?.getCollateralFloat(reserve))} ${symbol}`}
+                curValue={`${toBalance(
+                  isCollateral
+                    ? poolUser?.getCollateralFloat(reserve)
+                    : poolUser?.getSupplyFloat(reserve)
+                )} ${symbol}`}
+                newValue={`${toBalance(
+                  isCollateral
+                    ? newPoolUser?.getCollateralFloat(reserve)
+                    : newPoolUser?.getSupplyFloat(reserve)
+                )} ${symbol}`}
               />
               <ValueChange
                 title="Borrow capacity"

@@ -31,7 +31,7 @@ export function toBalance(
   if (numValue === 0) {
     visibleDecimals = 0;
   } else {
-    if (numValue >= 10) {
+    if (numValue >= 1) {
       visibleDecimals = 2;
     } else {
       visibleDecimals = Math.min(decimals ?? 7, 7);
@@ -95,6 +95,8 @@ export function toPercentage(rate: number | undefined, decimals = 2): string {
 export function toCompactAddress(address: string | undefined): string {
   if (!address) {
     return '';
+  } else if (address.length < 10) {
+    return address;
   }
 
   return `${address.substring(0, 4)}...${address.substring(address.length - 4, address.length)}`;

@@ -1,5 +1,5 @@
 import {
-  BackstopContract,
+  BackstopContractV1,
   BackstopPoolUserEst,
   parseResult,
   PoolBackstopActionArgs,
@@ -14,6 +14,7 @@ import {
   useBackstop,
   useBackstopPool,
   useBackstopPoolUser,
+  usePoolMeta,
   useTokenBalance,
 } from '../../hooks/api';
 import { RPC_DEBOUNCE_DELAY, useDebouncedState } from '../../hooks/debounce';
@@ -28,6 +29,7 @@ import { PoolComponentProps } from '../common/PoolComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
 import { Skeleton } from '../common/Skeleton';
+import { TxFeeSelector } from '../common/TxFeeSelector';
 import { TxOverview } from '../common/TxOverview';
 import { Value } from '../common/Value';
 import { ValueChange } from '../common/ValueChange';
@@ -35,11 +37,13 @@ import { ValueChange } from '../common/ValueChange';
 export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) => {
   const theme = useTheme();
   const { viewType } = useSettings();
-  const { connected, walletAddress, backstopDeposit, txStatus, txType, isLoading } = useWallet();
+  const { connected, walletAddress, backstopDeposit, txStatus, txType, isLoading, txInclusionFee } =
+    useWallet();
 
-  const { data: backstop } = useBackstop();
-  const { data: backstopPoolData } = useBackstopPool(poolId);
-  const { data: backstopUserPoolData } = useBackstopPoolUser(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: backstopPoolData } = useBackstopPool(poolMeta);
+  const { data: backstopUserPoolData } = useBackstopPoolUser(poolMeta);
   const { data: lpTokenRes } = useTokenBalance(
     backstop?.config?.backstopTkn,
     undefined,
@@ -95,17 +99,17 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
   };
 
   const handleSubmitTransaction = async (sim: boolean) => {
-    if (toDeposit && connected) {
+    if (toDeposit && connected && poolMeta) {
       const depositArgs: PoolBackstopActionArgs = {
         from: walletAddress,
         pool_address: poolId,
         amount: scaleInputToBigInt(toDeposit, 7),
       };
-      const response = await backstopDeposit(depositArgs, sim);
+      const response = await backstopDeposit(poolMeta, depositArgs, sim);
       if (response) {
         setSimResponse(response);
         if (rpc.Api.isSimulationSuccess(response)) {
-          const result = parseResult(response, BackstopContract.parsers.deposit);
+          const result = parseResult(response, BackstopContractV1.parsers.deposit);
           setParsedSimResult(result);
         }
       }
@@ -139,7 +143,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
               display: 'flex',
               gap: '12px',
               flexDirection: viewType !== ViewType.MOBILE ? 'row' : 'column',
-              marginBottom: '12px',
+              marginBottom: '6px',
             }}
           >
             <InputBar
@@ -170,23 +174,33 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
               </OpaqueButton>
             )}
           </Box>
-          <Box sx={{ marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Box
+            sx={{
+              marginLeft: '12px',
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
               {`$${toBalance(
                 Number(toDeposit ?? 0) * (backstop?.backstopToken.lpTokenPrice ?? 1)
               )}`}
             </Typography>
-            {viewType === ViewType.MOBILE && (
-              <OpaqueButton
-                onClick={() => handleSubmitTransaction(false)}
-                palette={theme.palette.backstop}
-                sx={{ minWidth: '108px', padding: '6px', width: '100%' }}
-                disabled={isSubmitDisabled}
-              >
-                Deposit
-              </OpaqueButton>
-            )}
+            <TxFeeSelector />
           </Box>
+          {viewType === ViewType.MOBILE && (
+            <OpaqueButton
+              onClick={() => handleSubmitTransaction(false)}
+              palette={theme.palette.backstop}
+              sx={{ minWidth: '108px', padding: '6px', width: '100%', marginTop: '6px' }}
+              disabled={isSubmitDisabled}
+            >
+              Deposit
+            </OpaqueButton>
+          )}
         </Box>
         {!isError && (
           <TxOverview>
@@ -200,7 +214,7 @@ export const BackstopDepositAnvil: React.FC<PoolComponentProps> = ({ poolId }) =
                   </>
                 }
                 value={`${toBalance(
-                  BigInt((simResponse as any)?.minResourceFee ?? 0),
+                  BigInt((simResponse as any)?.minResourceFee ?? 0) + BigInt(txInclusionFee.fee),
                   decimals
                 )} XLM`}
               />

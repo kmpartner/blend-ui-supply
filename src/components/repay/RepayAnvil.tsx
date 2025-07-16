@@ -1,7 +1,7 @@
 import {
   FixedMath,
   parseResult,
-  PoolContract,
+  PoolContractV1,
   PoolUser,
   Positions,
   PositionsEstimate,
@@ -17,15 +17,17 @@ import { TxStatus, TxType, useWallet } from '../../contexts/wallet';
 import {
   useHorizonAccount,
   usePool,
+  usePoolMeta,
   usePoolOracle,
   usePoolUser,
   useTokenBalance,
+  useTokenMetadata,
 } from '../../hooks/api';
 import { RPC_DEBOUNCE_DELAY, useDebouncedState } from '../../hooks/debounce';
-import { toBalance, toPercentage } from '../../utils/formatter';
+import { toBalance, toCompactAddress, toPercentage } from '../../utils/formatter';
 import { getAssetReserve } from '../../utils/horizon';
 import { scaleInputToBigInt } from '../../utils/scval';
-import { getErrorFromSim } from '../../utils/txSim';
+import { getErrorFromSim, SubmitError } from '../../utils/txSim';
 import { AnvilAlert } from '../common/AnvilAlert';
 import { InputBar } from '../common/InputBar';
 import { InputButton } from '../common/InputButton';
@@ -34,6 +36,7 @@ import { ReserveComponentProps } from '../common/ReserveComponentProps';
 import { Row } from '../common/Row';
 import { Section, SectionSize } from '../common/Section';
 import { Skeleton } from '../common/Skeleton';
+import { TxFeeSelector } from '../common/TxFeeSelector';
 import { TxOverview } from '../common/TxOverview';
 import { toUSDBalance } from '../common/USDBalance';
 import { Value } from '../common/Value';
@@ -43,35 +46,34 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
   const theme = useTheme();
   const { viewType } = useSettings();
 
-  const { connected, walletAddress, poolSubmit, txStatus, txType, isLoading } = useWallet();
+  const { connected, walletAddress, poolSubmit, txStatus, txType, isLoading, txInclusionFee } =
+    useWallet();
 
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
   const { data: poolUser } = usePoolUser(pool);
-  const reserve = pool?.reserves.get(assetId);
-  const decimals = reserve?.config.decimals ?? 7;
-  const symbol = reserve?.tokenMetadata.symbol ?? 'token';
+  const { data: tokenMetadata } = useTokenMetadata(assetId);
   const { data: horizonAccount } = useHorizonAccount();
-  const { data: tokenBalance } = useTokenBalance(
-    assetId,
-    reserve?.tokenMetadata?.asset,
-    horizonAccount
-  );
+  const { data: tokenBalance } = useTokenBalance(assetId, tokenMetadata?.asset, horizonAccount);
 
   const [toRepay, setToRepay] = useState<string>('');
   const [simResponse, setSimResponse] = useState<rpc.Api.SimulateTransactionResponse>();
   const [parsedSimResult, setParsedSimResult] = useState<Positions>();
   const [loadingEstimate, setLoadingEstimate] = useState<boolean>(false);
-  const loading = isLoading || loadingEstimate;
 
+  const loading = isLoading || loadingEstimate;
+  const reserve = pool?.reserves.get(assetId);
+  const decimals = reserve?.config.decimals ?? 7;
+  const symbol = tokenMetadata?.symbol ?? toCompactAddress(assetId);
   // calculate current wallet state
-  const stellar_reserve_amount = getAssetReserve(horizonAccount, reserve?.tokenMetadata?.asset);
+  const stellar_reserve_amount = getAssetReserve(horizonAccount, tokenMetadata?.asset);
   const freeUserBalanceScaled =
     FixedMath.toFloat(tokenBalance ?? BigInt(0), reserve?.config?.decimals) -
     stellar_reserve_amount;
 
   const handleSubmitTransaction = async (sim: boolean) => {
-    if (toRepay && connected && reserve) {
+    if (toRepay && connected && poolMeta && reserve) {
       let submitArgs: SubmitArgs = {
         from: walletAddress,
         to: walletAddress,
@@ -84,7 +86,7 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
           },
         ],
       };
-      return await poolSubmit(poolId, submitArgs, sim);
+      return await poolSubmit(poolMeta, submitArgs, sim);
     }
   };
 
@@ -95,16 +97,30 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
     if (response) {
       setSimResponse(response);
       if (rpc.Api.isSimulationSuccess(response)) {
-        setParsedSimResult(parseResult(response, PoolContract.parsers.submit));
+        setParsedSimResult(parseResult(response, PoolContractV1.parsers.submit));
       }
     }
     setLoadingEstimate(false);
   });
 
-  const { isSubmitDisabled, isMaxDisabled, reason, disabledType, isError, extraContent } = useMemo(
-    () => getErrorFromSim(toRepay, decimals, loading, simResponse, undefined),
-    [freeUserBalanceScaled, toRepay, simResponse, loading]
-  );
+  const { isSubmitDisabled, isMaxDisabled, reason, disabledType, isError, extraContent } =
+    useMemo(() => {
+      if (stellar_reserve_amount > 0 && Number(toRepay) > freeUserBalanceScaled) {
+        return {
+          isSubmitDisabled: true,
+          isError: true,
+          isMaxDisabled: false,
+          reason: `Your account requires a minimum balance of ${stellar_reserve_amount.toFixed(
+            2
+          )} ${symbol} for ${
+            tokenMetadata?.asset?.isNative() ? 'account reserves, fees, and ' : ''
+          }selling liabilities.`,
+          disabledType: 'error',
+        } as SubmitError;
+      } else {
+        return getErrorFromSim(toRepay, decimals, loading, simResponse, undefined);
+      }
+    }, [freeUserBalanceScaled, toRepay, simResponse, loading]);
 
   if (pool === undefined || reserve === undefined) {
     return <Skeleton />;
@@ -175,7 +191,7 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
               height: '35px',
               display: 'flex',
               flexDirection: 'row',
-              marginBottom: '12px',
+              marginBottom: '6px',
             }}
           >
             <InputBar
@@ -206,21 +222,31 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
               </OpaqueButton>
             )}
           </Box>
-          <Box sx={{ marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Box
+            sx={{
+              marginLeft: '12px',
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
             <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
               {toUSDBalance(assetToBase, Number(toRepay ?? 0))}
             </Typography>
-            {viewType === ViewType.MOBILE && (
-              <OpaqueButton
-                onClick={() => handleSubmitTransaction(false)}
-                palette={theme.palette.borrow}
-                sx={{ minWidth: '108px', width: '100%', padding: '6px' }}
-                disabled={isSubmitDisabled}
-              >
-                Repay
-              </OpaqueButton>
-            )}
+            <TxFeeSelector />
           </Box>
+          {viewType === ViewType.MOBILE && (
+            <OpaqueButton
+              onClick={() => handleSubmitTransaction(false)}
+              palette={theme.palette.borrow}
+              sx={{ minWidth: '108px', width: '100%', padding: '6px', marginTop: '6px' }}
+              disabled={isSubmitDisabled}
+            >
+              Repay
+            </OpaqueButton>
+          )}
         </Box>
         {!isError && (
           <TxOverview>
@@ -237,7 +263,7 @@ export const RepayAnvil: React.FC<ReserveComponentProps> = ({ poolId, assetId })
                   </>
                 }
                 value={`${toBalance(
-                  BigInt((simResponse as any)?.minResourceFee ?? 0),
+                  BigInt((simResponse as any)?.minResourceFee ?? 0) + BigInt(txInclusionFee.fee),
                   decimals
                 )} XLM`}
               />

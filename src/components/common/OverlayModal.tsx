@@ -1,4 +1,4 @@
-import { Box, useTheme } from '@mui/material';
+import { Box } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../../contexts';
@@ -13,7 +13,6 @@ export interface CloseableOverlayProps {
 
 export const OverlayModal: React.FC = () => {
   const router = useRouter();
-  const theme = useTheme();
   const { lastPool } = useSettings();
   const { txStatus, txType, clearLastTx } = useWallet();
 
@@ -23,7 +22,7 @@ export const OverlayModal: React.FC = () => {
 
   const { poolId } = router.query;
 
-  const lastPoolId = poolId ?? lastPool;
+  const lastPoolId = lastPool ? lastPool.id : poolId;
 
   const handleReturn = () => {
     const returnToHomePage = txStatus != TxStatus.FAIL;
@@ -33,11 +32,20 @@ export const OverlayModal: React.FC = () => {
       if (router.route == '/') {
         router.push({ pathname: '/' });
       } else if (router.route.includes('backstop')) {
-        router.push({ pathname: `/backstop`, query: { poolId: lastPoolId } });
+        router.push({
+          pathname: `/backstop`,
+          query: { poolId: lastPoolId },
+        });
       } else if (router.route.includes('auction')) {
-        router.push({ pathname: `/auction`, query: { poolId: lastPoolId } });
+        router.push({
+          pathname: `/auction`,
+          query: { poolId: lastPoolId },
+        });
       } else {
-        router.push({ pathname: `/dashboard`, query: { poolId: lastPoolId } });
+        router.push({
+          pathname: `/dashboard`,
+          query: { poolId: lastPoolId },
+        });
       }
     }
   };

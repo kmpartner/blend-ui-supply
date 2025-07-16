@@ -6,15 +6,17 @@ import {
   useBackstop,
   useHorizonAccount,
   usePool,
+  usePoolMeta,
   usePoolOracle,
   useTokenBalance,
+  useTokenMetadata,
 } from '../../hooks/api';
 import * as formatter from '../../utils/formatter';
 import { estimateEmissionsApr } from '../../utils/math';
-import { AprDisplay } from '../common/AprDisplay';
 import { CustomButton } from '../common/CustomButton';
 import { LinkBox } from '../common/LinkBox';
 import { PoolComponentProps } from '../common/PoolComponentProps';
+import { RateDisplay } from '../common/RateDisplay';
 import { SectionBase } from '../common/SectionBase';
 import { TokenHeader } from '../common/TokenHeader';
 
@@ -31,20 +33,29 @@ export const LendMarketCard: React.FC<LendMarketCardProps> = ({
   const theme = useTheme();
   const { viewType } = useSettings();
 
+  const { data: poolMeta } = usePoolMeta(poolId);
   const { data: userAccount } = useHorizonAccount();
+  const { data: tokenMetadata } = useTokenMetadata(reserve.assetId);
   const { data: userTokenBalance } = useTokenBalance(
     reserve.assetId,
-    reserve.tokenMetadata.asset,
+    tokenMetadata?.asset,
     userAccount
   );
-  const { data: backstop } = useBackstop();
-  const { data: pool } = usePool(poolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
 
+  const symbol = tokenMetadata?.symbol ?? formatter.toCompactAddress(reserve.assetId);
   const oraclePrice = poolOracle?.getPriceFloat(reserve.assetId);
-  const emissionsPerAsset = reserve.emissionsPerYearPerSuppliedAsset();
+  const emissionsPerAsset =
+    reserve && reserve.supplyEmissions !== undefined
+      ? reserve.supplyEmissions.emissionsPerYearPerToken(
+          reserve.totalSupply(),
+          reserve.config.decimals
+        )
+      : 0;
   const emissionApr =
-    backstop && emissionsPerAsset > 0 && oraclePrice
+    backstop && emissionsPerAsset && emissionsPerAsset > 0 && oraclePrice
       ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
       : undefined;
 
@@ -97,12 +108,12 @@ export const LendMarketCard: React.FC<LendMarketCardProps> = ({
               alignItems: 'center',
             }}
           >
-            <AprDisplay
-              assetSymbol={reserve.tokenMetadata.symbol}
-              assetApr={reserve.supplyApr}
+            <RateDisplay
+              assetSymbol={symbol}
+              assetRate={reserve.estSupplyApy}
               emissionSymbol="BLND"
               emissionApr={emissionApr}
-              isSupply={true}
+              rateType={'earned'}
               direction="vertical"
             />
           </Box>

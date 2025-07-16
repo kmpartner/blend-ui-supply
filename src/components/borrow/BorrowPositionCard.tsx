@@ -3,13 +3,19 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Box, Typography, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
 import { ViewType, useSettings } from '../../contexts';
-import { useBackstop, usePool, usePoolOracle } from '../../hooks/api';
+import {
+  useBackstop,
+  usePool,
+  usePoolMeta,
+  usePoolOracle,
+  useTokenMetadata,
+} from '../../hooks/api';
 import * as formatter from '../../utils/formatter';
 import { estimateEmissionsApr } from '../../utils/math';
-import { AprDisplay } from '../common/AprDisplay';
 import { LinkBox } from '../common/LinkBox';
 import { OpaqueButton } from '../common/OpaqueButton';
 import { PoolComponentProps } from '../common/PoolComponentProps';
+import { RateDisplay } from '../common/RateDisplay';
 import { TokenHeader } from '../common/TokenHeader';
 
 export interface BorrowPositionCardProps extends PoolComponentProps {
@@ -21,21 +27,29 @@ export const BorrowPositionCard: React.FC<BorrowPositionCardProps> = ({
   poolId,
   reserve,
   dTokens,
-  sx,
-  ...props
 }) => {
   const theme = useTheme();
   const { viewType } = useSettings();
   const router = useRouter();
 
-  const assetFloat = reserve.toAssetFromDTokenFloat(dTokens);
-  const { data: backstop } = useBackstop();
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
+  const { data: tokenMetadata } = useTokenMetadata(reserve.assetId);
+
+  const symbol = tokenMetadata?.symbol ?? formatter.toCompactAddress(reserve.assetId);
   const oraclePrice = poolOracle?.getPriceFloat(reserve.assetId);
-  const emissionsPerAsset = reserve.emissionsPerYearPerBorrowedAsset();
+  const assetFloat = reserve.toAssetFromDTokenFloat(dTokens);
+  const emissionsPerAsset =
+    reserve && reserve.borrowEmissions !== undefined
+      ? reserve.borrowEmissions.emissionsPerYearPerToken(
+          reserve.totalLiabilities(),
+          reserve.config.decimals
+        )
+      : 0;
   const emissionApr =
-    backstop && emissionsPerAsset > 0 && oraclePrice
+    backstop && emissionsPerAsset && emissionsPerAsset > 0 && oraclePrice
       ? estimateEmissionsApr(emissionsPerAsset, backstop.backstopToken, oraclePrice)
       : undefined;
 
@@ -88,12 +102,12 @@ export const BorrowPositionCard: React.FC<BorrowPositionCardProps> = ({
           alignItems: 'center',
         }}
       >
-        <AprDisplay
-          assetSymbol={reserve.tokenMetadata.symbol}
-          assetApr={reserve.borrowApr}
+        <RateDisplay
+          assetSymbol={symbol}
+          assetRate={reserve.estBorrowApy}
           emissionSymbol="BLND"
           emissionApr={emissionApr}
-          isSupply={false}
+          rateType={'charged'}
           direction="vertical"
         />
       </Box>

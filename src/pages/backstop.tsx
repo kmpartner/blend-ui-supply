@@ -1,13 +1,18 @@
 import {
-  BackstopClaimArgs,
-  BackstopContract,
+  BackstopClaimV1Args,
+  BackstopClaimV2Args,
+  BackstopContractV1,
+  BackstopContractV2,
   BackstopPoolEst,
   BackstopPoolUserEst,
+  ContractErrorType,
   FixedMath,
+  parseError,
   parseResult,
+  Version,
 } from '@blend-capital/blend-sdk';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { Box, Typography } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import { rpc, scValToBigInt, xdr } from '@stellar/stellar-sdk';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
@@ -23,31 +28,38 @@ import { Row } from '../components/common/Row';
 import { Section, SectionSize } from '../components/common/Section';
 import { SectionBase } from '../components/common/SectionBase';
 import { StackedText } from '../components/common/StackedText';
+import { TooltipText } from '../components/common/TooltipText';
+import { NotPoolBar } from '../components/pool/NotPoolBar';
 import { PoolExploreBar } from '../components/pool/PoolExploreBar';
 import { PoolHealthBanner } from '../components/pool/PoolHealthBanner';
+import { useSettings } from '../contexts/settings';
 import { useWallet } from '../contexts/wallet';
 import {
   useBackstop,
   useBackstopPool,
   useBackstopPoolUser,
   useHorizonAccount,
+  usePoolMeta,
   useSimulateOperation,
   useTokenBalance,
 } from '../hooks/api';
+import { NOT_BLEND_POOL_ERROR_MESSAGE } from '../hooks/types';
 import theme from '../theme';
 import { CometClient } from '../utils/comet';
 import { toBalance, toPercentage } from '../utils/formatter';
 
 const Backstop: NextPage = () => {
   const router = useRouter();
+  const { isV2Enabled } = useSettings();
   const { connected, walletAddress, backstopClaim, restore } = useWallet();
 
   const { poolId } = router.query;
   const safePoolId = typeof poolId == 'string' && /^[0-9A-Z]{56}$/.test(poolId) ? poolId : '';
 
-  const { data: backstop } = useBackstop();
-  const { data: backstopPoolData } = useBackstopPool(safePoolId);
-  const { data: userBackstopPoolData } = useBackstopPoolUser(safePoolId);
+  const { data: poolMeta, error: poolError } = usePoolMeta(safePoolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: backstopPoolData } = useBackstopPool(poolMeta);
+  const { data: userBackstopPoolData } = useBackstopPoolUser(poolMeta);
   const { data: horizonAccount } = useHorizonAccount();
   const { data: lpBalance } = useTokenBalance(
     backstop?.backstopToken?.id ?? '',
@@ -75,13 +87,32 @@ const Backstop: NextPage = () => {
       ? (Number(lpBalance) / 1e7) * backstop.backstopToken.lpTokenPrice
       : undefined;
 
-  const backstopContract = new BackstopContract(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
-  const claimArgs: BackstopClaimArgs = {
-    from: walletAddress,
-    pool_addresses: [safePoolId],
-    to: walletAddress,
-  };
-  const claimOp = safePoolId && walletAddress !== '' ? backstopContract.claim(claimArgs) : '';
+  let claimOp = '';
+
+  if (isV2Enabled && poolMeta?.version == Version.V2) {
+    const claimArgs: BackstopClaimV2Args = {
+      from: walletAddress,
+      pool_addresses: [safePoolId],
+      min_lp_tokens_out: BigInt(0),
+    };
+    let backstopContract = new BackstopContractV2(process.env.NEXT_PUBLIC_BACKSTOP_V2 ?? '');
+    claimOp =
+      safePoolId && walletAddress !== '' && backstopContract
+        ? backstopContract.claim(claimArgs)
+        : '';
+  } else {
+    const claimArgs: BackstopClaimV1Args = {
+      from: walletAddress,
+      pool_addresses: [safePoolId],
+      to: walletAddress,
+    };
+    let backstopContract = new BackstopContractV1(process.env.NEXT_PUBLIC_BACKSTOP ?? '');
+    claimOp =
+      safePoolId && walletAddress !== '' && backstopContract
+        ? backstopContract.claim(claimArgs)
+        : '';
+  }
+
   const {
     data: claimSimResult,
     isLoading: isClaimLoading,
@@ -91,6 +122,10 @@ const Backstop: NextPage = () => {
     isClaimLoading === false &&
     claimSimResult !== undefined &&
     rpc.Api.isSimulationRestore(claimSimResult);
+  const isError =
+    isClaimLoading === false &&
+    claimSimResult !== undefined &&
+    rpc.Api.isSimulationError(claimSimResult);
 
   const cometContract =
     backstop !== undefined ? new CometClient(backstop.backstopToken.id) : undefined;
@@ -124,15 +159,140 @@ const Backstop: NextPage = () => {
       : undefined;
 
   const handleClaimEmissionsClick = async () => {
-    if (connected && userBackstopPoolData) {
-      let claimArgs: BackstopClaimArgs = {
-        from: walletAddress,
-        pool_addresses: [safePoolId],
-        to: walletAddress,
-      };
-      await backstopClaim(claimArgs, false);
+    if (connected && poolMeta && userBackstopPoolData) {
+      let claimArgs: BackstopClaimV1Args | BackstopClaimV2Args;
+      if (isV2Enabled && poolMeta.version == Version.V2) {
+        claimArgs = {
+          from: walletAddress,
+          pool_addresses: [safePoolId],
+          min_lp_tokens_out: BigInt(0),
+        };
+      } else {
+        claimArgs = { from: walletAddress, pool_addresses: [safePoolId], to: walletAddress };
+      }
+      await backstopClaim(poolMeta, claimArgs, false);
       refetchClaimSim();
       refetchMintSim();
+    }
+  };
+
+  const renderClaimButton = () => {
+    if (!isRestore && !isError)
+      return (
+        <CustomButton
+          sx={{
+            width: '100%',
+            margin: '6px',
+            padding: '12px',
+            color: theme.palette.text.primary,
+            backgroundColor: theme.palette.background.default,
+            '&:hover': {
+              color: theme.palette.primary.main,
+            },
+          }}
+          onClick={handleClaimEmissionsClick}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+            <FlameIcon />
+            <Icon
+              src={`/icons/tokens/blndusdclp.svg`}
+              alt={`blndusdclp`}
+              sx={{ height: '30px', width: '30px', marginRight: '12px' }}
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                <Typography variant="h4" sx={{ marginRight: '6px' }}>
+                  {toBalance(lpTokenEmissions, 7)}
+                </Typography>
+                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                  BLND-USDC LP
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                {`$${toBalance(backstopClaimUSD)}`}
+              </Typography>
+            </Box>
+          </Box>
+          <ArrowForwardIcon fontSize="inherit" />
+        </CustomButton>
+      );
+    else {
+      let disabled = false;
+      let buttonText = '';
+      let buttonTooltip = undefined;
+      let onClick = undefined;
+      if (isRestore) {
+        buttonText = 'Restore Data';
+        onClick = handleRestore;
+      } else if (isError) {
+        const claimError = parseError(claimSimResult);
+        buttonText = 'Error checking claim';
+        buttonTooltip = 'Erorr while checking claim amount: ' + ContractErrorType[claimError.type];
+        disabled = true;
+      }
+      return (
+        <Tooltip
+          title={buttonTooltip}
+          placement="top-start"
+          enterTouchDelay={0}
+          enterDelay={500}
+          leaveTouchDelay={3000}
+        >
+          <Box sx={{ width: '100%' }}>
+            <CustomButton
+              sx={{
+                width: '100%',
+                padding: '12px',
+                color: theme.palette.text.primary,
+                backgroundColor: theme.palette.background.default,
+                '&:hover': {
+                  color: theme.palette.primary.main,
+                },
+              }}
+              disabled={disabled}
+              onClick={handleClaimEmissionsClick}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <Box
+                  sx={{
+                    borderRadius: '50%',
+                    backgroundColor: theme.palette.warning.opaque,
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Icon
+                    alt="BLND Token Icon"
+                    src="/icons/tokens/blnd-yellow.svg"
+                    height="24px"
+                    width="18px"
+                    isCircle={false}
+                  />
+                </Box>
+                <TooltipText
+                  tooltip={buttonTooltip ?? ''}
+                  width="auto"
+                  textVariant="body1"
+                  textColor={'inherit'}
+                >
+                  {buttonText}
+                </TooltipText>
+              </Box>
+              <ArrowForwardIcon fontSize="inherit" />
+            </CustomButton>
+          </Box>
+        </Tooltip>
+      );
     }
   };
 
@@ -142,6 +302,10 @@ const Backstop: NextPage = () => {
       refetchClaimSim();
     }
   };
+
+  if (poolError?.message === NOT_BLEND_POOL_ERROR_MESSAGE) {
+    return <NotPoolBar poolId={safePoolId} />;
+  }
 
   return (
     <>
@@ -241,44 +405,7 @@ const Backstop: NextPage = () => {
             <Typography variant="body2" sx={{ margin: '6px' }}>
               Emissions to claim
             </Typography>
-            <Row>
-              <CustomButton
-                sx={{
-                  width: '100%',
-                  margin: '6px',
-                  padding: '12px',
-                  color: theme.palette.text.primary,
-                  backgroundColor: theme.palette.background.default,
-                  '&:hover': {
-                    color: theme.palette.primary.main,
-                  },
-                }}
-                onClick={handleClaimEmissionsClick}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                  <FlameIcon />
-                  <Icon
-                    src={`/icons/tokens/blndusdclp.svg`}
-                    alt={`blndusdclp`}
-                    sx={{ height: '30px', width: '30px', marginRight: '12px' }}
-                  />
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                      <Typography variant="h4" sx={{ marginRight: '6px' }}>
-                        {toBalance(lpTokenEmissions, 7)}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                        BLND-USDC LP
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
-                      {`$${toBalance(backstopClaimUSD)}`}
-                    </Typography>
-                  </Box>
-                </Box>
-                <ArrowForwardIcon fontSize="inherit" />
-              </CustomButton>
-            </Row>
+            <Row>{renderClaimButton()}</Row>
           </Section>
         </Row>
       )}

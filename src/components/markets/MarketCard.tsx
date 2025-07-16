@@ -1,10 +1,10 @@
 import { BackstopPoolEst, PoolEstimate } from '@blend-capital/blend-sdk';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { Box, Collapse, useTheme } from '@mui/material';
+import { Box, Collapse, Typography, useTheme } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useSettings } from '../../contexts';
-import { useBackstop, useBackstopPool, usePool, usePoolOracle } from '../../hooks/api';
+import { useSettings, ViewType } from '../../contexts';
+import { useBackstop, useBackstopPool, usePool, usePoolMeta, usePoolOracle } from '../../hooks/api';
 import { toBalance } from '../../utils/formatter';
 import { LinkBox } from '../common/LinkBox';
 import { OpaqueButton } from '../common/OpaqueButton';
@@ -25,26 +25,38 @@ export interface MarketCardProps extends PoolComponentProps {
 
 export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded, sx }) => {
   const theme = useTheme();
-  const { trackPool } = useSettings();
+  const { trackPool, viewType } = useSettings();
 
-  const { data: backstop } = useBackstop();
-  const { data: pool } = usePool(poolId);
+  const { data: poolMeta } = usePoolMeta(poolId);
+  const { data: backstop } = useBackstop(poolMeta?.version);
+  const { data: pool } = usePool(poolMeta);
   const { data: poolOracle } = usePoolOracle(pool);
-  const { data: backstopPool } = useBackstopPool(poolId);
-
+  const { data: backstopPool } = useBackstopPool(poolMeta);
   const [expand, setExpand] = useState(false);
   const [rotateArrow, setRotateArrow] = useState(false);
 
   const rotate = rotateArrow ? 'rotate(180deg)' : 'rotate(0)';
 
+  const isRegularView = viewType === ViewType.REGULAR;
   useEffect(() => {
-    if (pool !== undefined && backstopPool !== undefined && backstop !== undefined) {
+    if (
+      poolMeta !== undefined &&
+      pool !== undefined &&
+      backstopPool !== undefined &&
+      backstop !== undefined
+    ) {
       onLoaded(index);
-      trackPool(poolId, pool.config.name);
+      trackPool(poolMeta);
     }
   }, [pool, backstopPool, backstop]);
 
-  if (pool === undefined || backstopPool === undefined || backstop === undefined) {
+  if (
+    poolMeta === undefined ||
+    pool === undefined ||
+    poolOracle === undefined ||
+    backstopPool === undefined ||
+    backstop === undefined
+  ) {
     return <Skeleton height={'100px'} />;
   }
 
@@ -67,7 +79,11 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
         }}
       >
         <Row>
-          <PoolHeader name={pool.config.name} sx={{ margin: '6px', padding: '6px' }} />
+          <PoolHeader
+            name={poolMeta.name}
+            version={poolMeta.version}
+            sx={{ margin: '6px', padding: '6px' }}
+          />
 
           <Box
             sx={{
@@ -129,11 +145,17 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
             }}
           >
             <Box sx={{ margin: '6px', height: '30px', display: 'flex' }}>
-              {Array.from(pool.reserves.values()).map((reserve) => {
+              {Array.from(pool.reserves.values()).map((reserve, index) => {
+                if (!isRegularView && index > 3) return null; // Limit to 4 icons
                 return (
                   <TokenIcon key={reserve.assetId} reserve={reserve} sx={{ marginRight: '6px' }} />
                 );
               })}
+              {!isRegularView && pool.reserves.size > 4 && (
+                <Typography variant="body2" alignSelf={'end'}>
+                  +{pool.reserves.size - 4}
+                </Typography>
+              )}
             </Box>
             <Box sx={{ padding: '6px', display: 'flex', flexDirection: 'row', height: '30px' }}>
               <Box sx={{ paddingRight: '12px', lineHeight: '100%' }}>Dashboard</Box>
@@ -149,6 +171,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
       <Collapse in={expand} sx={{ width: '100%' }}>
         <MarketCardCollapse
           pool={pool}
+          oracle={poolOracle}
           poolEst={poolEst}
           backstopPool={backstopPool}
           backstopPoolEst={backstopPoolEst}
