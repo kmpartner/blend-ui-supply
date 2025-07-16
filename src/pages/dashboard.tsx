@@ -135,7 +135,7 @@ const Dashboard: NextPage = () => {
             sx={{ width: '50%', padding: '12px' }}
             onClick={handleLendClick}
           >
-            Supply
+            Supply 
           </ToggleButton>
           {/* <ToggleButton
             active={!showLend}
