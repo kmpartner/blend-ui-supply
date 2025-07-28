@@ -67,8 +67,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
     <Section width={SectionSize.FULL} sx={{ flexDirection: 'column', marginBottom: '12px', ...sx }}>
       <Box
         onClick={() => {
-          setExpand(!expand);
-          setRotateArrow(!rotateArrow);
+          // setExpand(!expand);
+          // setRotateArrow(!rotateArrow);
         }}
         sx={{
           width: '100%',
@@ -85,7 +85,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
             sx={{ margin: '6px', padding: '6px' }}
           />
 
-          <Box
+          {/* <Box
             sx={{
               margin: '6px',
               padding: '6px',
@@ -106,9 +106,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
                 transition: 'all 0.2s linear',
               }}
             />
-          </Box>
+          </Box> */}
         </Row>
-        <Row>
+        {/* <Row>
           <StackedTextHLBox
             name="Supplied"
             text={`$${toBalance(poolEst?.totalSupply)}`}
@@ -127,7 +127,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({ poolId, index, onLoaded,
             palette={theme.palette.backstop}
             sx={{ width: '33.33%' }}
           ></StackedTextHLBox>
-        </Row>
+        </Row> */}
       </Box>
       <Row>
         <LinkBox
